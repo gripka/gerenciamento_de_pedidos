@@ -11,18 +11,19 @@ def imprimir_pedido(pedido):
         printer = Usb(0x04b8, 0x0e03, 0)
 
         # Cabeçalho do pedido
-        printer.text("Recibo de Pedido - Adriana Flores\n")
+        printer.text("Recibo de Pedido\n")
         printer.text("=====================\n")
 
-        # Imprimir os campos do pedido
-        for campo, valor in pedido.items():
-            if campo not in ["Nome do Destinatário", "Telefone do Destinatário", "Endereço de Entrega", "Data de Entrega", "Hora de Entrega", "Referência"]:
-                printer.text(f"{campo}: {valor}\n")
+        # Imprimir os campos do pedido, incluindo a lista de pedidos
+        printer.text(f"Nome do Comprador: {pedido.get('Nome do Comprador', '')}\n")
+        for i, p in enumerate(pedido.get('Pedidos', []), 1):
+            printer.text(f"Pedido {i}: {p}\n")
+        printer.text(f"Telefone: {pedido.get('Telefone', '')}\n")
+        printer.text(f"Cartão: {pedido.get('Cartão', '')}\n")
+        printer.text(f"Contato: {pedido.get('Contato', '')}\n")
 
         # Adicionar uma linha de separação antes dos detalhes do destinatário
         printer.text("=====================\n")
-
-        # Imprimir os detalhes do destinatário
         printer.text("Detalhes do Destinatário\n")
         printer.text("=====================\n")
         printer.text(f"Nome do Destinatário: {pedido.get('Nome do Destinatário', '')}\n")
