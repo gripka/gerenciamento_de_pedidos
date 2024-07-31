@@ -7,9 +7,17 @@ def carregar_configuracoes():
     try:
         with open("config.json", "r") as arquivo:
             config = json.load(arquivo)
-            return config.get("logo_path", "")
+            return {
+                "logo_path": config.get("logo_path", ""),
+                "cabecalho_pedido": config.get("cabecalho_pedido"),
+                "nome_estabelecimento": config.get("nome_estabelecimento")
+            }
     except FileNotFoundError:
-        return ""
+        return {
+            "logo_path": "",
+            "cabecalho_pedido": "Cabeçalho não configurado",
+            "nome_estabelecimento": "Estabelecimento não configurado"
+        }
 
 def imprimir_pedido(pedido):
     try:
@@ -20,8 +28,12 @@ def imprimir_pedido(pedido):
         # Inicializar a impressora USB
         printer = Usb(0x04b8, 0x0e03, 0)
 
-        # Carregar o caminho do logo a partir das configurações
-        logo_path = carregar_configuracoes()
+        # Carregar o caminho do logo e outras configurações a partir das configurações
+        config = carregar_configuracoes()
+        logo_path = config.get("logo_path", "")
+        cabecalho_pedido = config.get("cabecalho_pedido")
+        nome_estabelecimento = config.get("nome_estabelecimento")
+
         if logo_path:
             try:
                 logo = Image.open(logo_path).convert('L')
@@ -29,11 +41,15 @@ def imprimir_pedido(pedido):
             except Exception as e:
                 print(f"Erro ao carregar a imagem do logo: {e}")
 
-        # Cabeçalho do pedido
-        printer.text("\nRecibo de Pedido\n")
+        # Centralizar o cabeçalho do pedido
+        printer.text("\n")
+        printer.set(align='center')
+        printer.text(f"{cabecalho_pedido}\n")
+        printer.set(align='center')
         printer.text("==========================================\n")
 
         # Imprimir os campos do pedido, incluindo a lista de pedidos
+        printer.set(align='left')
         printer.text(f"Nome do Comprador: {pedido.get('Nome do Comprador', '')}\n")
         for i, p in enumerate(pedido.get('Pedidos', []), 1):
             printer.text(f"Pedido {i}: {p}\n")
@@ -42,9 +58,11 @@ def imprimir_pedido(pedido):
         printer.text(f"Contato: {pedido.get('Contato', '')}\n")
 
         # Adicionar uma linha de separação antes dos detalhes do destinatário
+        printer.set(align='center')
         printer.text("==========================================\n")
         printer.text("Detalhes do Destinatário\n")
         printer.text("==========================================\n")
+        printer.set(align='left')
         printer.text(f"Nome do Destinatário: {pedido.get('Nome do Destinatário', '')}\n")
         printer.text(f"Telefone do Destinatário: {pedido.get('Telefone do Destinatário', '')}\n")
         printer.text(f"Endereço de Entrega: {pedido.get('Endereço de Entrega', '')}\n")
@@ -53,10 +71,13 @@ def imprimir_pedido(pedido):
         printer.text(f"Hora de Entrega: {pedido.get('Hora de Entrega', '')}\n")
 
         # Adicionar a data e hora da impressão
+        printer.set(align='center')
+
         data_hora_impressao = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         printer.text("\n")
         printer.text("==========================================\n")
-        printer.text("Adriana Flores\n")
+        printer.set(align='center')
+        printer.text(f"{nome_estabelecimento}\n")
         printer.text(f"Data da Impressão: {data_hora_impressao}\n")
         printer.text("==========================================\n")
 

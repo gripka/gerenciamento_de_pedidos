@@ -50,10 +50,19 @@ class PedidoApp:
         self.remover_logo_btn = tk.Button(self.configuracao_tab, text="Remover Logo", command=self.remover_logo)
         self.remover_logo_btn.grid(row=1, column=1, pady=10, padx=10, sticky=tk.E)
 
+        tk.Label(self.configuracao_tab, text="Cabeçalho do Pedido").grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
+        self.cabecalho_pedido_entry = tk.Entry(self.configuracao_tab, width=60)
+        self.cabecalho_pedido_entry.grid(row=2, column=1, padx=10, pady=5, sticky=tk.EW)
+
+        tk.Label(self.configuracao_tab, text="Nome do Estabelecimento").grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
+        self.nome_estabelecimento_entry = tk.Entry(self.configuracao_tab, width=60)
+        self.nome_estabelecimento_entry.grid(row=3, column=1, padx=10, pady=5, sticky=tk.EW)
+
         self.salvar_configuracao_btn = tk.Button(self.configuracao_tab, text="Salvar Configuração", command=self.salvar_configuracao)
-        self.salvar_configuracao_btn.grid(row=2, column=0, columnspan=2, pady=10, padx=10)
+        self.salvar_configuracao_btn.grid(row=4, column=0, columnspan=2, pady=10, padx=10)
 
         self.carregar_configuracao()
+
 
     def selecionar_logo(self):
         caminho_logo = filedialog.askopenfilename(title="Selecione o Logo", filetypes=[("Imagens", "*.png;*.jpg;*.jpeg")])
@@ -71,26 +80,56 @@ class PedidoApp:
         self.logo_path_entry.config(state='readonly')
 
     def salvar_configuracao(self):
-        config = {"logo_path": self.logo_path}
         try:
+            # Coletar as configurações atuais
+            configuracoes = {
+                "logo_path": self.logo_path_entry.get(),
+                "cabecalho_pedido": self.cabecalho_pedido_entry.get(),
+                "nome_estabelecimento": self.nome_estabelecimento_entry.get()
+            }
+
+            # Salvar as configurações em um arquivo JSON
             with open("config.json", "w") as arquivo:
-                json.dump(config, arquivo, indent=4)
-            messagebox.showinfo("Sucesso", "Configuração salva com sucesso!")
+                json.dump(configuracoes, arquivo, indent=4)
+
+            # Informar ao usuário que a configuração foi salva com sucesso
+            tk.messagebox.showinfo("Configuração", "Configuração salva com sucesso!")
         except Exception as e:
-            messagebox.showerror("Erro", f"Erro ao salvar configuração: {e}")
+            print(f"Erro ao salvar configuração: {e}")
+            tk.messagebox.showerror("Erro", "Não foi possível salvar a configuração.")
+
 
     def carregar_configuracao(self):
         try:
             with open("config.json", "r") as arquivo:
                 config = json.load(arquivo)
-                self.logo_path = config.get("logo_path", "")
-                if self.logo_path:
-                    self.logo_path_entry.config(state='normal')
-                    self.logo_path_entry.delete(0, tk.END)
-                    self.logo_path_entry.insert(0, self.logo_path)
-                    self.logo_path_entry.config(state='readonly')
+                # Atualizar os campos da interface gráfica com as configurações carregadas
+                self.logo_path_entry.config(state='normal')
+                self.logo_path_entry.delete(0, tk.END)
+                self.logo_path_entry.insert(0, config.get("logo_path", ""))
+                self.logo_path_entry.config(state='readonly')
+                
+                self.cabecalho_pedido_entry.delete(0, tk.END)
+                self.cabecalho_pedido_entry.insert(0, config.get("cabecalho_pedido"))
+
+                self.nome_estabelecimento_entry.delete(0, tk.END)
+                self.nome_estabelecimento_entry.insert(0, config.get("nome_estabelecimento"))
         except FileNotFoundError:
-            pass
+            # Configurações padrão
+            self.logo_path_entry.config(state='normal')
+            self.logo_path_entry.delete(0, tk.END)
+            self.logo_path_entry.insert(0, "")
+            self.logo_path_entry.config(state='readonly')
+            
+            self.cabecalho_pedido_entry.delete(0, tk.END)
+            self.cabecalho_pedido_entry.insert(0, "Recibo de Pedido")
+
+            self.nome_estabelecimento_entry.delete(0, tk.END)
+            self.nome_estabelecimento_entry.insert(0, "Adriana Flores")
+        except Exception as e:
+            print(f"Erro ao carregar configuração: {e}")
+            tk.messagebox.showerror("Erro", "Não foi possível carregar a configuração.")
+
 
 
     def create_lista_pedidos_tab(self):
