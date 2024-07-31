@@ -1,5 +1,15 @@
 from escpos.printer import Usb
+from PIL import Image
 from datetime import datetime
+import json
+
+def carregar_configuracoes():
+    try:
+        with open("config.json", "r") as arquivo:
+            config = json.load(arquivo)
+            return config.get("logo_path", "")
+    except FileNotFoundError:
+        return ""
 
 def imprimir_pedido(pedido):
     try:
@@ -10,9 +20,18 @@ def imprimir_pedido(pedido):
         # Inicializar a impressora USB
         printer = Usb(0x04b8, 0x0e03, 0)
 
+        # Carregar o caminho do logo a partir das configurações
+        logo_path = carregar_configuracoes()
+        if logo_path:
+            try:
+                logo = Image.open(logo_path).convert('L')
+                printer.image(logo)
+            except Exception as e:
+                print(f"Erro ao carregar a imagem do logo: {e}")
+
         # Cabeçalho do pedido
-        printer.text("Recibo de Pedido\n")
-        printer.text("=====================\n")
+        printer.text("\nRecibo de Pedido\n")
+        printer.text("==========================================\n")
 
         # Imprimir os campos do pedido, incluindo a lista de pedidos
         printer.text(f"Nome do Comprador: {pedido.get('Nome do Comprador', '')}\n")
@@ -23,9 +42,9 @@ def imprimir_pedido(pedido):
         printer.text(f"Contato: {pedido.get('Contato', '')}\n")
 
         # Adicionar uma linha de separação antes dos detalhes do destinatário
-        printer.text("=====================\n")
+        printer.text("==========================================\n")
         printer.text("Detalhes do Destinatário\n")
-        printer.text("=====================\n")
+        printer.text("==========================================\n")
         printer.text(f"Nome do Destinatário: {pedido.get('Nome do Destinatário', '')}\n")
         printer.text(f"Telefone do Destinatário: {pedido.get('Telefone do Destinatário', '')}\n")
         printer.text(f"Endereço de Entrega: {pedido.get('Endereço de Entrega', '')}\n")
@@ -36,10 +55,10 @@ def imprimir_pedido(pedido):
         # Adicionar a data e hora da impressão
         data_hora_impressao = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         printer.text("\n")
-        printer.text("=====================\n")
+        printer.text("==========================================\n")
         printer.text("Adriana Flores\n")
         printer.text(f"Data da Impressão: {data_hora_impressao}\n")
-        printer.text("=====================\n")
+        printer.text("==========================================\n")
 
         # Cortar o papel
         printer.cut()

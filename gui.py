@@ -5,30 +5,92 @@ from datetime import datetime
 import json
 from impressao import imprimir_pedido
 import tkinter.messagebox as messagebox
+from tkinter import filedialog
+from tkinter import filedialog, Tk, messagebox
 
 class PedidoApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Gerenciador de Pedidos")
-        self.root.geometry("800x600")
+        self.root.geometry("900x600")
 
         self.pedidos = []
+        self.logo_path = ""
 
         self.tab_control = ttk.Notebook(root)
 
         self.lista_pedidos_tab = ttk.Frame(self.tab_control)
         self.adicionar_pedido_tab = ttk.Frame(self.tab_control)
+        self.configuracao_tab = ttk.Frame(self.tab_control)
 
         self.tab_control.add(self.lista_pedidos_tab, text="Lista de Pedidos")
         self.tab_control.add(self.adicionar_pedido_tab, text="Adicionar Pedido")
+        self.tab_control.add(self.configuracao_tab, text="Configuração")
 
         self.tab_control.pack(expand=1, fill="both")
 
         self.create_lista_pedidos_tab()
         self.create_adicionar_pedido_tab()
+        self.create_configuracao_tab()
 
-        self.carregar_pedidos()  # Carregar pedidos ao iniciar
-        self.atualizar_lista_pedidos()  # Atualizar a lista de pedidos após o carregamento
+        self.carregar_pedidos()
+        self.atualizar_lista_pedidos()
+
+    def create_configuracao_tab(self):
+        for widget in self.configuracao_tab.winfo_children():
+            widget.destroy()
+
+        tk.Label(self.configuracao_tab, text="Caminho do Logo").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        self.logo_path_entry = tk.Entry(self.configuracao_tab, width=60, state='readonly')
+        self.logo_path_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.EW)
+
+        self.selecionar_logo_btn = tk.Button(self.configuracao_tab, text="Selecionar Logo", command=self.selecionar_logo)
+        self.selecionar_logo_btn.grid(row=1, column=0, pady=10, padx=10, sticky=tk.W)
+
+        self.remover_logo_btn = tk.Button(self.configuracao_tab, text="Remover Logo", command=self.remover_logo)
+        self.remover_logo_btn.grid(row=1, column=1, pady=10, padx=10, sticky=tk.E)
+
+        self.salvar_configuracao_btn = tk.Button(self.configuracao_tab, text="Salvar Configuração", command=self.salvar_configuracao)
+        self.salvar_configuracao_btn.grid(row=2, column=0, columnspan=2, pady=10, padx=10)
+
+        self.carregar_configuracao()
+
+    def selecionar_logo(self):
+        caminho_logo = filedialog.askopenfilename(title="Selecione o Logo", filetypes=[("Imagens", "*.png;*.jpg;*.jpeg")])
+        if caminho_logo:
+            self.logo_path = caminho_logo
+            self.logo_path_entry.config(state='normal')
+            self.logo_path_entry.delete(0, tk.END)
+            self.logo_path_entry.insert(0, caminho_logo)
+            self.logo_path_entry.config(state='readonly')
+
+    def remover_logo(self):
+        self.logo_path = ""
+        self.logo_path_entry.config(state='normal')
+        self.logo_path_entry.delete(0, tk.END)
+        self.logo_path_entry.config(state='readonly')
+
+    def salvar_configuracao(self):
+        config = {"logo_path": self.logo_path}
+        try:
+            with open("config.json", "w") as arquivo:
+                json.dump(config, arquivo, indent=4)
+            messagebox.showinfo("Sucesso", "Configuração salva com sucesso!")
+        except Exception as e:
+            messagebox.showerror("Erro", f"Erro ao salvar configuração: {e}")
+
+    def carregar_configuracao(self):
+        try:
+            with open("config.json", "r") as arquivo:
+                config = json.load(arquivo)
+                self.logo_path = config.get("logo_path", "")
+                if self.logo_path:
+                    self.logo_path_entry.config(state='normal')
+                    self.logo_path_entry.delete(0, tk.END)
+                    self.logo_path_entry.insert(0, self.logo_path)
+                    self.logo_path_entry.config(state='readonly')
+        except FileNotFoundError:
+            pass
 
 
     def create_lista_pedidos_tab(self):
@@ -331,4 +393,5 @@ class PedidoApp:
 if __name__ == "__main__":
     root = tk.Tk()
     app = PedidoApp(root)
+    app.carregar_configuracao()  # Carregar configurações ao iniciar o app
     root.mainloop()
