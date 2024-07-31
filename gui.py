@@ -29,6 +29,7 @@ class PedidoApp:
         self.carregar_pedidos()  # Carregar pedidos ao iniciar
         self.atualizar_lista_pedidos()  # Atualizar a lista de pedidos após o carregamento
 
+
     def create_lista_pedidos_tab(self):
         # Configuração do layout da aba de lista de pedidos
         self.lista_pedidos_tab.grid_rowconfigure(0, weight=1)
@@ -41,6 +42,10 @@ class PedidoApp:
         self.busca_entry = tk.Entry(self.lista_pedidos_tab)
         self.busca_entry.grid(row=0, column=1, pady=5, padx=10, sticky=tk.EW)
         self.busca_entry.bind("<KeyRelease>", self.filtrar_pedidos)
+
+        # Configurar a coluna para expandir a barra de busca
+        self.lista_pedidos_tab.grid_columnconfigure(1, weight=1)
+
 
         # Treeview para exibir os pedidos
         self.tree = ttk.Treeview(self.lista_pedidos_tab, columns=("Nome", "Data do Pedido", "Telefone", "Cartão", "Pedido realizado por", "Nome do Destinatário", "Telefone do Destinatário", "Endereço de Entrega", "Referência", "Data de Entrega", "Hora de Entrega"), show='headings')
@@ -102,12 +107,12 @@ class PedidoApp:
         self.add_pedido_entry()
 
         self.add_pedido_btn = tk.Button(self.adicionar_pedido_tab, text="Adicionar Outro Pedido", command=self.add_pedido_entry)
-        self.add_pedido_btn.grid(row=2, column=1, pady=10, sticky=tk.E)
+        self.add_pedido_btn.grid(row=2, column=1, pady=10, sticky=tk.W)
 
         # Telefone
         tk.Label(self.adicionar_pedido_tab, text="Telefone").grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
-        self.telefone_entry = tk.Entry(self.adicionar_pedido_tab, width=50)
-        self.telefone_entry.grid(row=3, column=1, padx=10, pady=5, sticky=tk.EW)
+        self.telefone_entry = tk.Entry(self.adicionar_pedido_tab, width=25)  # Ajustando a largura do campo de telefone
+        self.telefone_entry.grid(row=3, column=1, padx=10, pady=5, sticky=tk.W)  # Ajustando a posição do campo de telefone
 
         # Cartão
         tk.Label(self.adicionar_pedido_tab, text="Cartão").grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
@@ -133,8 +138,8 @@ class PedidoApp:
 
         # Telefone do Destinatário
         tk.Label(self.adicionar_pedido_tab, text="Telefone do Destinatário").grid(row=7, column=0, padx=10, pady=5, sticky=tk.W)
-        self.telefone_destinatario_entry = tk.Entry(self.adicionar_pedido_tab, width=50)
-        self.telefone_destinatario_entry.grid(row=7, column=1, padx=10, pady=5, sticky=tk.EW)
+        self.telefone_destinatario_entry = tk.Entry(self.adicionar_pedido_tab, width=25)
+        self.telefone_destinatario_entry.grid(row=7, column=1, padx=10, pady=5, sticky=tk.W)
 
         # Endereço de Entrega
         tk.Label(self.adicionar_pedido_tab, text="Endereço de Entrega").grid(row=8, column=0, padx=10, pady=5, sticky=tk.W)
@@ -168,7 +173,6 @@ class PedidoApp:
         self.adicionar_pedido_btn.grid(row=12, column=0, columnspan=2, pady=10)
 
 
-
     def add_pedido_entry(self):
         row = len(self.pedido_entries)
         pedido_label = tk.Label(self.pedidos_frame, text=f"Pedido {row + 1}")
@@ -176,6 +180,7 @@ class PedidoApp:
         pedido_entry = tk.Entry(self.pedidos_frame)
         pedido_entry.grid(row=row, column=1, padx=10, pady=5, sticky=tk.W)
         self.pedido_entries.append(pedido_entry)
+
 
     def adicionar_pedido(self):
         pedidos = [entry.get() for entry in self.pedido_entries]
@@ -224,6 +229,7 @@ class PedidoApp:
         with open("pedidos.json", "w") as arquivo:
             json.dump(self.pedidos, arquivo, indent=4)
 
+
     def carregar_pedidos(self):
         try:
             with open("pedidos.json", "r") as arquivo:
@@ -231,23 +237,57 @@ class PedidoApp:
         except FileNotFoundError:
             self.pedidos = []
 
+
     def atualizar_lista_pedidos(self):
+        # Ordenar pedidos por data, mais recente primeiro
+        self.pedidos.sort(key=lambda x: datetime.strptime(x['Data do Pedido'], "%d/%m/%Y %H:%M:%S"), reverse=True)
+        
         self.tree.delete(*self.tree.get_children())
         for pedido in self.pedidos:
-            self.tree.insert("", tk.END, values=(pedido['Nome do Comprador'], pedido['Data do Pedido']))
+            self.tree.insert('', 'end', values=(
+                pedido["Nome do Comprador"],
+                pedido["Data do Pedido"],
+                pedido["Telefone"],
+                pedido["Cartão"],
+                pedido["Pedido realizado por"],
+                pedido["Nome do Destinatário"],
+                pedido["Telefone do Destinatário"],
+                pedido["Endereço de Entrega"],
+                pedido["Referência"],
+                pedido["Data de Entrega"],
+                pedido["Hora de Entrega"]
+            ))
+
 
     def filtrar_pedidos(self, event):
-        filtro = self.busca_entry.get().lower()
+        query = self.busca_entry.get().lower()
+        filtered_pedidos = [
+            pedido for pedido in self.pedidos
+            if query in pedido["Nome do Comprador"].lower() or query in pedido["Data do Pedido"].lower()
+        ]
         self.tree.delete(*self.tree.get_children())
-        for pedido in self.pedidos:
-            if filtro in pedido['Nome do Comprador'].lower() or filtro in pedido['Data do Pedido'].lower():
-                self.tree.insert("", tk.END, values=(pedido['Nome do Comprador'], pedido['Data do Pedido']))
+        for pedido in filtered_pedidos:
+            self.tree.insert('', 'end', values=(
+                pedido["Nome do Comprador"],
+                pedido["Data do Pedido"],
+                pedido["Telefone"],
+                pedido["Cartão"],
+                pedido["Pedido realizado por"],
+                pedido["Nome do Destinatário"],
+                pedido["Telefone do Destinatário"],
+                pedido["Endereço de Entrega"],
+                pedido["Referência"],
+                pedido["Data de Entrega"],
+                pedido["Hora de Entrega"]
+            ))
+
 
     def imprimir_pedidos_selecionados(self):
         selecionados = self.tree.selection()
         for item in selecionados:
             pedido = self.pedidos[self.tree.index(item)]
             imprimir_pedido(pedido)
+
 
     def apagar_pedidos_selecionados(self):
         selecionados = self.tree.selection()
@@ -256,6 +296,7 @@ class PedidoApp:
             del self.pedidos[index]
             self.tree.delete(item)
         self.salvar_pedidos()
+
 
 if __name__ == "__main__":
     root = tk.Tk()
