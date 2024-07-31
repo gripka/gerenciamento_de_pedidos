@@ -4,6 +4,7 @@ from tkcalendar import DateEntry
 from datetime import datetime
 import json
 from impressao import imprimir_pedido
+import tkinter.messagebox as messagebox
 
 class PedidoApp:
     def __init__(self, root):
@@ -183,6 +184,10 @@ class PedidoApp:
 
 
     def adicionar_pedido(self):
+        resposta = messagebox.askyesno("Confirmar", "Deseja realmente adicionar este pedido?")
+        if not resposta:
+            return
+
         pedidos = [entry.get() for entry in self.pedido_entries]
         hora = self.hora_var.get()
         minuto = self.minuto_var.get()
@@ -198,7 +203,7 @@ class PedidoApp:
             "Endereço de Entrega": self.endereco_entry.get(),
             "Referência": self.referencia_entry.get(),
             "Data de Entrega": self.data_entrega_entry.get_date().strftime("%d/%m/%Y"),
-            "Hora de Entrega": f"{hora.zfill(2)}:{minuto.zfill(2)}",  # Formata a hora e minuto com dois dígitos
+            "Hora de Entrega": f"{hora.zfill(2)}:{minuto.zfill(2)}",
             "Data do Pedido": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         }
         self.pedidos.append(pedido)
@@ -207,6 +212,8 @@ class PedidoApp:
 
         # Imprimir o pedido
         imprimir_pedido(pedido)
+
+        messagebox.showinfo("Sucesso", "Pedido adicionado com sucesso!")
 
         # Limpar os campos após adicionar
         self.nome_entry.delete(0, tk.END)
@@ -222,7 +229,8 @@ class PedidoApp:
         self.endereco_entry.delete(0, tk.END)
         self.referencia_entry.delete(0, tk.END)
         self.data_entrega_entry.set_date(datetime.now())
-        self.hora_entrega_entry.delete(0, tk.END)
+        self.hora_var.set("00")
+        self.minuto_var.set("00")
 
 
     def salvar_pedidos(self):
@@ -284,18 +292,40 @@ class PedidoApp:
 
     def imprimir_pedidos_selecionados(self):
         selecionados = self.tree.selection()
+        if not selecionados:
+            messagebox.showwarning("Aviso", "Nenhum pedido selecionado para imprimir.")
+            return
+        
+        resposta = messagebox.askyesno("Confirmar Impressão", "Deseja realmente imprimir os pedidos selecionados?")
+        if not resposta:
+            return
+        
         for item in selecionados:
-            pedido = self.pedidos[self.tree.index(item)]
-            imprimir_pedido(pedido)
+            valores = self.tree.item(item, "values")
+            pedido = next((p for p in self.pedidos if p["Nome do Comprador"] == valores[0] and p["Data do Pedido"] == valores[1]), None)
+            if pedido:
+                imprimir_pedido(pedido)
+        messagebox.showinfo("Sucesso", "Pedidos impressos com sucesso!")
+
 
 
     def apagar_pedidos_selecionados(self):
         selecionados = self.tree.selection()
+        if not selecionados:
+            messagebox.showwarning("Aviso", "Nenhum pedido selecionado para apagar.")
+            return
+        
+        resposta = messagebox.askyesno("Confirmar Exclusão", "Deseja realmente apagar os pedidos selecionados?")
+        if not resposta:
+            return
+        
         for item in reversed(selecionados):
             index = self.tree.index(item)
             del self.pedidos[index]
             self.tree.delete(item)
         self.salvar_pedidos()
+        messagebox.showinfo("Sucesso", "Pedidos apagados com sucesso!")
+
 
 
 if __name__ == "__main__":
