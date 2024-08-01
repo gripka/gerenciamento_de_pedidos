@@ -5,14 +5,13 @@ from datetime import datetime
 import json
 from impressao import imprimir_pedido
 import tkinter.messagebox as messagebox
-from tkinter import filedialog
-from tkinter import filedialog, Tk, messagebox
+from tkinter import filedialog, Tk, messagebox, LabelFrame, StringVar, Radiobutton
 
 class PedidoApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Gerenciador de Pedidos")
-        self.root.geometry("900x600")
+        self.root.geometry("600x600")
 
         self.pedidos = []
         self.logo_path = ""
@@ -40,28 +39,41 @@ class PedidoApp:
         for widget in self.configuracao_tab.winfo_children():
             widget.destroy()
 
-        tk.Label(self.configuracao_tab, text="Caminho do Logo").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
-        self.logo_path_entry = tk.Entry(self.configuracao_tab, width=60, state='readonly')
+        # Frame para configuração do logo
+        logo_frame = tk.LabelFrame(self.configuracao_tab, text="Configuração do Logo", padx=10, pady=10)
+        logo_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        logo_frame.columnconfigure(1, weight=1)
+
+        tk.Label(logo_frame, text="Caminho do Logo").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        self.logo_path_entry = tk.Entry(logo_frame, width=60, state='readonly')
         self.logo_path_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.EW)
 
-        self.selecionar_logo_btn = tk.Button(self.configuracao_tab, text="Selecionar Logo", command=self.selecionar_logo)
+        self.selecionar_logo_btn = tk.Button(logo_frame, text="Selecionar Logo", command=self.selecionar_logo)
         self.selecionar_logo_btn.grid(row=1, column=0, pady=10, padx=10, sticky=tk.W)
 
-        self.remover_logo_btn = tk.Button(self.configuracao_tab, text="Remover Logo", command=self.remover_logo)
+        self.remover_logo_btn = tk.Button(logo_frame, text="Remover Logo", command=self.remover_logo)
         self.remover_logo_btn.grid(row=1, column=1, pady=10, padx=10, sticky=tk.E)
 
-        tk.Label(self.configuracao_tab, text="Cabeçalho do Pedido").grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
-        self.cabecalho_pedido_entry = tk.Entry(self.configuracao_tab, width=60)
-        self.cabecalho_pedido_entry.grid(row=2, column=1, padx=10, pady=5, sticky=tk.EW)
+        # Frame para configuração do cabeçalho e nome do estabelecimento
+        cabecalho_frame = tk.LabelFrame(self.configuracao_tab, text="Configuração do Pedido", padx=10, pady=10)
+        cabecalho_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+        cabecalho_frame.columnconfigure(1, weight=1)
 
-        tk.Label(self.configuracao_tab, text="Nome do Estabelecimento").grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
-        self.nome_estabelecimento_entry = tk.Entry(self.configuracao_tab, width=60)
-        self.nome_estabelecimento_entry.grid(row=3, column=1, padx=10, pady=5, sticky=tk.EW)
+        tk.Label(cabecalho_frame, text="Cabeçalho do Pedido").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        self.cabecalho_pedido_entry = tk.Entry(cabecalho_frame, width=60)
+        self.cabecalho_pedido_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.EW)
 
+        tk.Label(cabecalho_frame, text="Nome do Estabelecimento").grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
+        self.nome_estabelecimento_entry = tk.Entry(cabecalho_frame, width=60)
+        self.nome_estabelecimento_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.EW)
+
+
+        # Botão para salvar as configurações
         self.salvar_configuracao_btn = tk.Button(self.configuracao_tab, text="Salvar Configuração", command=self.salvar_configuracao)
-        self.salvar_configuracao_btn.grid(row=4, column=0, columnspan=2, pady=10, padx=10)
+        self.salvar_configuracao_btn.grid(row=2, column=0, pady=10, padx=10, sticky="ew")
 
         self.carregar_configuracao()
+
 
 
     def selecionar_logo(self):
@@ -426,6 +438,73 @@ class PedidoApp:
             self.tree.delete(item)
         self.salvar_pedidos()
         messagebox.showinfo("Sucesso", "Pedidos apagados com sucesso!")
+
+    def atualizar_idioma(idioma):
+        # Atualiza os textos da interface com base no idioma selecionado
+        with open('config.json', 'r') as file:
+            config = json.load(file)
+        config['idioma'] = idioma
+        with open('config.json', 'w') as file:
+            json.dump(config, file, indent=4)
+        carregar_textos(idioma)
+
+    # Função para carregar textos
+    def carregar_textos(idioma):
+        textos = {
+            "pt": {
+                "configuracao": "Configuração",
+                "idioma": "Gerenciamento de Idiomas",
+                "portugues": "Português",
+                "ingles": "Inglês"
+            },
+            "en": {
+                "configuracao": "Configuration",
+                "idioma": "Language Management",
+                "portugues": "Portuguese",
+                "ingles": "English"
+            }
+        }
+        textos_interface = textos[idioma]
+        label_configuracao.config(text=textos_interface["configuracao"])
+        label_idioma.config(text=textos_interface["idioma"])
+        botao_portugues.config(text=textos_interface["portugues"])
+        botao_ingles.config(text=textos_interface["ingles"])
+
+    # Função para criar a interface
+    def criar_interface():
+        root = tk.Tk()
+        root.title("Configuração")
+
+        # Frame de configuração
+        config_frame = LabelFrame(root, text="Configuração", padx=10, pady=10)
+        config_frame.pack(padx=10, pady=10, fill="both", expand=True)
+
+        # LabelFrame para idiomas
+        idioma_frame = LabelFrame(config_frame, text="Gerenciamento de Idiomas", padx=10, pady=10)
+        idioma_frame.pack(padx=10, pady=10, fill="both", expand=True)
+
+        idioma_var = StringVar(value="pt")
+        
+        # Botões de idioma
+        botao_portugues = Radiobutton(idioma_frame, text="Português", variable=idioma_var, value="pt", command=lambda: atualizar_idioma("pt"))
+        botao_portugues.pack(anchor="w")
+        
+        botao_ingles = Radiobutton(idioma_frame, text="Inglês", variable=idioma_var, value="en", command=lambda: atualizar_idioma("en"))
+        botao_ingles.pack(anchor="w")
+        
+        # Labels para textos
+        global label_configuracao, label_idioma
+        label_configuracao = tk.Label(config_frame, text="")
+        label_configuracao.pack(pady=5)
+        
+        label_idioma = tk.Label(idioma_frame, text="")
+        label_idioma.pack(pady=5)
+
+        # Carregar configuração inicial
+        with open('config.json', 'r') as file:
+            config = json.load(file)
+        idioma = config.get('idioma', 'pt')
+        carregar_textos(idioma)
 
 
 
