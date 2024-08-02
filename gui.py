@@ -6,12 +6,15 @@ import json
 from impressao import imprimir_pedido
 import tkinter.messagebox as messagebox
 from tkinter import filedialog, Tk, messagebox, LabelFrame, StringVar, Radiobutton
-
+import usb.core
+import usb.util
 class PedidoApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Gerenciador de Pedidos")
         self.root.geometry("600x600")
+
+        self.root.iconbitmap("C:\pedidos_programa\icons\icogerenciamento.ico")
 
         self.pedidos = []
         self.logo_path = ""
@@ -67,12 +70,91 @@ class PedidoApp:
         self.nome_estabelecimento_entry = tk.Entry(cabecalho_frame, width=60)
         self.nome_estabelecimento_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.EW)
 
+        # Frame para configuração da impressora
+        impressora_frame = tk.LabelFrame(self.configuracao_tab, text="Configuração da Impressora", padx=10, pady=10)
+        impressora_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+        impressora_frame.columnconfigure(1, weight=1)
+
+        tk.Label(impressora_frame, text="Selecionar Impressora").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        self.printer_var = tk.StringVar()
+        self.printer_combobox = ttk.Combobox(impressora_frame, textvariable=self.printer_var)
+        self.printer_combobox.grid(row=0, column=1, padx=10, pady=5, sticky=tk.EW)
+        self.printer_combobox.bind("<<ComboboxSelected>>", self.atualizar_impressora_selecionada)
+
+        # Botão para atualizar a lista de impressoras
+        self.atualizar_lista_btn = tk.Button(impressora_frame, text="Atualizar Lista", command=self.atualizar_lista_impressoras)
+        self.atualizar_lista_btn.grid(row=0, column=2, padx=10, pady=5)
+
+        tk.Label(impressora_frame, text="Vendor ID").grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
+        self.vendor_id_entry = tk.Entry(impressora_frame, width=30)
+        self.vendor_id_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.W)
+
+        tk.Label(impressora_frame, text="Product ID").grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
+        self.product_id_entry = tk.Entry(impressora_frame, width=30)
+        self.product_id_entry.grid(row=2, column=1, padx=10, pady=5, sticky=tk.W)
+
+        # Checkbutton para entrada manual dos IDs
+        self.entrada_manual_var = tk.BooleanVar()
+        self.entrada_manual_check = tk.Checkbutton(impressora_frame, text="Inserir manualmente", variable=self.entrada_manual_var, command=self.atualizar_estado_ids)
+        self.entrada_manual_check.grid(row=3, column=0, columnspan=2, pady=10, padx=10, sticky=tk.W)
+
+        # Label para mostrar a impressora selecionada
+        self.impressora_selecionada_label = tk.Label(impressora_frame, text="Impressora Selecionada: Nenhuma")
+        self.impressora_selecionada_label.grid(row=4, column=0, columnspan=3, pady=10, padx=10, sticky=tk.W)
 
         # Botão para salvar as configurações
         self.salvar_configuracao_btn = tk.Button(self.configuracao_tab, text="Salvar Configuração", command=self.salvar_configuracao)
-        self.salvar_configuracao_btn.grid(row=2, column=0, pady=10, padx=10, sticky="ew")
+        self.salvar_configuracao_btn.grid(row=3, column=0, pady=10, padx=10, sticky=tk.EW)
 
         self.carregar_configuracao()
+        self.atualizar_lista_impressoras()
+        self.atualizar_estado_ids()
+
+    def atualizar_lista_impressoras(self):
+        self.usb_printers = self.listar_impressoras_usb()
+        self.printer_combobox.config(values=self.usb_printers)
+        if not self.usb_printers:
+            self.printer_var.set("")
+        else:
+            self.printer_var.set(self.usb_printers[0] if self.usb_printers else "")
+
+    def atualizar_impressora_selecionada(self, event):
+        selecionado = self.printer_var.get()
+        self.impressora_selecionada_label.config(text=f"Impressora Selecionada: {selecionado}")
+        # Atualiza o estado dos campos conforme a seleção
+        self.atualizar_estado_ids()
+
+    def atualizar_estado_ids(self):
+        if self.entrada_manual_var.get():
+            self.vendor_id_entry.config(state='normal')
+            self.product_id_entry.config(state='normal')
+        else:
+            self.vendor_id_entry.config(state='disabled')
+            self.product_id_entry.config(state='disabled')
+
+    def listar_impressoras_usb(self):
+        dispositivos = usb.core.find(find_all=True)
+        impressoras = []
+        for dispositivo in dispositivos:
+            try:
+                if dispositivo.bDeviceClass == 7:
+                    nome = usb.util.get_string(dispositivo, dispositivo.iProduct) if dispositivo.iProduct else "Desconhecido"
+                    impressoras.append(f"{nome} (Vendor ID: {hex(dispositivo.idVendor)}, Product ID: {hex(dispositivo.idProduct)})")
+                elif dispositivo.bDeviceClass == 0:
+                    for config in dispositivo:
+                        for interface in config:
+                            if interface.bInterfaceClass == 7:
+                                nome = usb.util.get_string(dispositivo, dispositivo.iProduct) if dispositivo.iProduct else "Desconhecido"
+                                impressoras.append(f"{nome} (Vendor ID: {hex(dispositivo.idVendor)}, Product ID: {hex(dispositivo.idProduct)})")
+                                break
+                print(f"Dispositivo encontrado: Vendor ID = {hex(dispositivo.idVendor)}, Product ID = {hex(dispositivo.idProduct)}, Classe = {dispositivo.bDeviceClass}")
+            except usb.core.USBError as e:
+                print(f"Erro ao acessar dispositivo USB: {e}")
+            except ValueError:
+                print(f"Não foi possível acessar o nome do dispositivo: Vendor ID = {hex(dispositivo.idVendor)}, Product ID = {hex(dispositivo.idProduct)}")
+        if not impressoras:
+            print("Nenhuma impressora USB encontrada.")
+        return impressoras
 
 
 
@@ -97,12 +179,19 @@ class PedidoApp:
             configuracoes = {
                 "logo_path": self.logo_path_entry.get(),
                 "cabecalho_pedido": self.cabecalho_pedido_entry.get(),
-                "nome_estabelecimento": self.nome_estabelecimento_entry.get()
+                "nome_estabelecimento": self.nome_estabelecimento_entry.get(),
+                "printer_vendor_id": int(self.vendor_id_entry.get(), 16) if self.vendor_id_entry.get() else 0x04b8,
+                "printer_product_id": int(self.product_id_entry.get(), 16) if self.product_id_entry.get() else 0x0e03,
+                "impressora_selecionada": self.printer_var.get()  # Adiciona a impressora selecionada
             }
 
             # Salvar as configurações em um arquivo JSON
             with open("config.json", "w") as arquivo:
                 json.dump(configuracoes, arquivo, indent=4)
+
+            # Atualizar o label com a impressora selecionada
+            impressora_selecionada = self.printer_var.get() or "Nenhuma"
+            self.impressora_selecionada_label.config(text=f"Impressora Selecionada: {impressora_selecionada}")
 
             # Informar ao usuário que a configuração foi salva com sucesso
             tk.messagebox.showinfo("Configuração", "Configuração salva com sucesso!")
@@ -111,36 +200,56 @@ class PedidoApp:
             tk.messagebox.showerror("Erro", "Não foi possível salvar a configuração.")
 
 
+
+
+
     def carregar_configuracao(self):
         try:
             with open("config.json", "r") as arquivo:
                 config = json.load(arquivo)
-                # Atualizar os campos da interface gráfica com as configurações carregadas
-                self.logo_path_entry.config(state='normal')
+                self.logo_path_entry.config(state='normal')  # Permitir edição para carregar o caminho
                 self.logo_path_entry.delete(0, tk.END)
                 self.logo_path_entry.insert(0, config.get("logo_path", ""))
-                self.logo_path_entry.config(state='readonly')
-                
+                self.logo_path_entry.config(state='readonly')  # Voltar para somente leitura
+
                 self.cabecalho_pedido_entry.delete(0, tk.END)
-                self.cabecalho_pedido_entry.insert(0, config.get("cabecalho_pedido"))
+                self.cabecalho_pedido_entry.insert(0, config.get("cabecalho_pedido", ""))
 
                 self.nome_estabelecimento_entry.delete(0, tk.END)
-                self.nome_estabelecimento_entry.insert(0, config.get("nome_estabelecimento"))
+                self.nome_estabelecimento_entry.insert(0, config.get("nome_estabelecimento", ""))
+
+                self.vendor_id_entry.delete(0, tk.END)
+                self.vendor_id_entry.insert(0, format(config.get("printer_vendor_id", 0x04b8), '04x').upper())
+
+                self.product_id_entry.delete(0, tk.END)
+                self.product_id_entry.insert(0, format(config.get("printer_product_id", 0x0e03), '04x').upper())
+
+                # Atualizar a combobox com a impressora selecionada
+                impressora_selecionada = config.get("impressora_selecionada", "Nenhuma")
+                self.printer_var.set(impressora_selecionada)
+                self.impressora_selecionada_label.config(text=f"Impressora Selecionada: {impressora_selecionada}")
+
         except FileNotFoundError:
-            # Configurações padrão
+            # Configurações padrão em caso de arquivo não encontrado
             self.logo_path_entry.config(state='normal')
             self.logo_path_entry.delete(0, tk.END)
             self.logo_path_entry.insert(0, "")
-            self.logo_path_entry.config(state='readonly')
-            
+
             self.cabecalho_pedido_entry.delete(0, tk.END)
-            self.cabecalho_pedido_entry.insert(0, "Recibo de Pedido")
+            self.cabecalho_pedido_entry.insert(0, "Cabeçalho não configurado")
 
             self.nome_estabelecimento_entry.delete(0, tk.END)
-            self.nome_estabelecimento_entry.insert(0, "Adriana Flores")
-        except Exception as e:
-            print(f"Erro ao carregar configuração: {e}")
-            tk.messagebox.showerror("Erro", "Não foi possível carregar a configuração.")
+            self.nome_estabelecimento_entry.insert(0, "Estabelecimento não configurado")
+
+            self.vendor_id_entry.delete(0, tk.END)
+            self.vendor_id_entry.insert(0, "04B8")
+
+            self.product_id_entry.delete(0, tk.END)
+            self.product_id_entry.insert(0, "0E03")
+
+            self.printer_var.set("Nenhuma")
+            self.impressora_selecionada_label.config(text="Impressora Selecionada: Nenhuma")
+
 
 
 
@@ -232,9 +341,9 @@ class PedidoApp:
         tk.Label(self.adicionar_pedido_tab, text="Cartão").grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
         cartao_frame = tk.Frame(self.adicionar_pedido_tab)
         cartao_frame.grid(row=4, column=1, padx=10, pady=5, sticky=tk.EW)
-        self.cartao_var = tk.StringVar(value="Não")
+        self.cartao_var = tk.StringVar(value="Nao")
         tk.Radiobutton(cartao_frame, text="Sim", variable=self.cartao_var, value="Sim").pack(side=tk.LEFT, padx=5)
-        tk.Radiobutton(cartao_frame, text="Não", variable=self.cartao_var, value="Não").pack(side=tk.LEFT, padx=5)
+        tk.Radiobutton(cartao_frame, text="Nao", variable=self.cartao_var, value="Nao").pack(side=tk.LEFT, padx=5)
 
         # Contato
         tk.Label(self.adicionar_pedido_tab, text="Pedido realizado por").grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
@@ -335,7 +444,7 @@ class PedidoApp:
             widget.destroy()
         self.add_pedido_entry()
         self.telefone_entry.delete(0, tk.END)
-        self.cartao_var.set("Não")
+        self.cartao_var.set("Nao")
         self.contato_var.set("WhatsApp")
         self.destinatario_entry.delete(0, tk.END)
         self.telefone_destinatario_entry.delete(0, tk.END)

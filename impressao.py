@@ -3,6 +3,13 @@ from PIL import Image
 from datetime import datetime
 import json
 
+def converter_para_cp437(texto):
+    try:
+        return texto.encode('cp437')
+    except UnicodeEncodeError:
+        print("Erro ao converter texto para CP437.")
+        return b''
+    
 def carregar_configuracoes():
     try:
         with open("config.json", "r") as arquivo:
@@ -10,13 +17,17 @@ def carregar_configuracoes():
             return {
                 "logo_path": config.get("logo_path", ""),
                 "cabecalho_pedido": config.get("cabecalho_pedido"),
-                "nome_estabelecimento": config.get("nome_estabelecimento")
+                "nome_estabelecimento": config.get("nome_estabelecimento"),
+                "printer_vendor_id": config.get("printer_vendor_id", 0x04b8),
+                "printer_product_id": config.get("printer_product_id", 0x0e03)
             }
     except FileNotFoundError:
         return {
             "logo_path": "",
             "cabecalho_pedido": "Cabeçalho não configurado",
-            "nome_estabelecimento": "Estabelecimento não configurado"
+            "nome_estabelecimento": "Estabelecimento não configurado",
+            "printer_vendor_id": 0x04b8,
+            "printer_product_id": 0x0e03
         }
 
 def imprimir_pedido(pedido):
@@ -25,8 +36,16 @@ def imprimir_pedido(pedido):
         if not isinstance(pedido, dict):
             raise TypeError("O parâmetro 'pedido' deve ser um dicionário")
 
+        # Carregar o caminho do logo e outras configurações a partir das configurações
+        config = carregar_configuracoes()
+        logo_path = config.get("logo_path", "")
+        cabecalho_pedido = config.get("cabecalho_pedido")
+        nome_estabelecimento = config.get("nome_estabelecimento")
+        printer_vendor_id = config.get("printer_vendor_id")
+        printer_product_id = config.get("printer_product_id")
+
         # Inicializar a impressora USB
-        printer = Usb(0x04b8, 0x0e03, 0)
+        printer = Usb(printer_vendor_id, printer_product_id, 0)
 
         # Carregar o caminho do logo e outras configurações a partir das configurações
         config = carregar_configuracoes()
@@ -54,19 +73,19 @@ def imprimir_pedido(pedido):
         for i, p in enumerate(pedido.get('Pedidos', []), 1):
             printer.text(f"Pedido {i}: {p}\n")
         printer.text(f"Telefone: {pedido.get('Telefone', '')}\n")
-        printer.text(f"Cartão: {pedido.get('Cartão', '')}\n")
+        printer.text(f"Cartao: {pedido.get('Cartão', '')}\n")
         printer.text(f"Contato: {pedido.get('Contato', '')}\n")
 
         # Adicionar uma linha de separação antes dos detalhes do destinatário
         printer.set(align='center')
         printer.text("==========================================\n")
-        printer.text("Detalhes do Destinatário\n")
+        printer.text("Detalhes do Destinatario\n")
         printer.text("==========================================\n")
         printer.set(align='left')
-        printer.text(f"Nome do Destinatário: {pedido.get('Nome do Destinatário', '')}\n")
-        printer.text(f"Telefone do Destinatário: {pedido.get('Telefone do Destinatário', '')}\n")
-        printer.text(f"Endereço de Entrega: {pedido.get('Endereço de Entrega', '')}\n")
-        printer.text(f"Referência: {pedido.get('Referência', '')}\n")
+        printer.text(f"Nome do Destinatario: {pedido.get('Nome do Destinatário', '')}\n")
+        printer.text(f"Telefone do Destinatario: {pedido.get('Telefone do Destinatário', '')}\n")
+        printer.text(f"Endereco de Entrega: {pedido.get('Endereço de Entrega', '')}\n")
+        printer.text(f"Referencia: {pedido.get('Referência', '')}\n")
         printer.text(f"Data de Entrega: {pedido.get('Data de Entrega', '')}\n")
         printer.text(f"Hora de Entrega: {pedido.get('Hora de Entrega', '')}\n")
 
@@ -78,7 +97,7 @@ def imprimir_pedido(pedido):
         printer.text("==========================================\n")
         printer.set(align='center')
         printer.text(f"{nome_estabelecimento}\n")
-        printer.text(f"Data da Impressão: {data_hora_impressao}\n")
+        printer.text(f"Data da Impressao: {data_hora_impressao}\n")
         printer.text("==========================================\n")
 
         # Cortar o papel

@@ -4,7 +4,7 @@ from cx_Freeze import setup, Executable
 build_exe_options = {
     "packages": ["tkinter", "tkcalendar"],
     "includes": ["impressao", "gui"],  # Liste os módulos sem a extensão .py
-    "include_files": ["config.json"], 
+    #"include_files": ["config.json"], 
 }
 
 base = None
@@ -13,8 +13,13 @@ if sys.platform == "win32":
 
 setup(
     name="Gerenciador de Pedidos",
-    version="0.1",
+    version="0.2",
     description="Aplicação para gerenciar pedidos",
     options={"build_exe": build_exe_options},
-    executables=[Executable("main.py", base=base)] 
+    executables=[Executable(
+        "main.py",
+        base=base,
+        target_name="Pedidos.exe",
+        icon="C:/pedidos_programa/icons/icogerenciamento.ico"
+    )]
 )
