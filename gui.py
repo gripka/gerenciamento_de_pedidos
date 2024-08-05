@@ -12,7 +12,7 @@ class PedidoApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Gerenciador de Pedidos")
-        self.root.geometry("600x600")
+        self.root.geometry("600x680")
 
         self.root.iconbitmap("C:\pedidos_programa\icons\icogerenciamento.ico")
 
@@ -104,7 +104,12 @@ class PedidoApp:
 
         # Botão para salvar as configurações
         self.salvar_configuracao_btn = tk.Button(self.configuracao_tab, text="Salvar Configuração", command=self.salvar_configuracao)
-        self.salvar_configuracao_btn.grid(row=3, column=0, pady=10, padx=10, sticky=tk.EW)
+        self.salvar_configuracao_btn.grid(row=3, column=0, columnspan=2, pady=10)
+
+
+        # Botão Adicionar Pedido
+        self.adicionar_pedido_btn = tk.Button(self.adicionar_pedido_tab, text="Adicionar Pedido", command=self.adicionar_pedido)
+        self.adicionar_pedido_btn.grid(row=12, column=0, columnspan=2, pady=10)
 
         self.carregar_configuracao()
         self.atualizar_lista_impressoras()
@@ -317,70 +322,97 @@ class PedidoApp:
         self.adicionar_pedido_tab.grid_columnconfigure(0, weight=0)
         self.adicionar_pedido_tab.grid_columnconfigure(1, weight=1)
 
-        # Nome do Comprador
-        tk.Label(self.adicionar_pedido_tab, text="Nome do Comprador").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
-        self.nome_entry = tk.Entry(self.adicionar_pedido_tab, width=50)
+        # Comprador frame
+        self.comprador_frame = tk.LabelFrame(self.adicionar_pedido_tab, text="Comprador", padx=10, pady=10)
+        self.comprador_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
+        self.comprador_frame.columnconfigure(1, weight=1)
+
+        tk.Label(self.comprador_frame, text="Nome").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        self.nome_entry = tk.Entry(self.comprador_frame, width=50)
         self.nome_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.EW)
 
-        # Adicionar Pedidos
-        tk.Label(self.adicionar_pedido_tab, text="Pedidos").grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
-        self.pedidos_frame = tk.Frame(self.adicionar_pedido_tab)
-        self.pedidos_frame.grid(row=1, column=1, padx=10, pady=5, sticky=tk.EW)
+        # Telefone
+        tk.Label(self.comprador_frame, text="Telefone").grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
+        self.telefone_entry = tk.Entry(self.comprador_frame, width=25)  # Ajustando a largura do campo de telefone
+        self.telefone_entry.grid(row=3, column=1, padx=10, pady=5, sticky=tk.W)
+       
+        # Pedidos frame
+        self.pedidos_frame = tk.LabelFrame(self.adicionar_pedido_tab, text="Pedidos", padx=10, pady=10)
+        self.pedidos_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
+        self.pedidos_frame.columnconfigure(1, weight=1)
+
+        # Frame interno para pedidos
+        self.pedidos_inner_frame = tk.Frame(self.pedidos_frame)
+        self.pedidos_inner_frame.grid(row=0, column=0, padx=10, pady=5, sticky=tk.EW, columnspan=2)
+
+        # Frame para os botões
+        self.botoes_frame = tk.Frame(self.pedidos_frame)
+        self.botoes_frame.grid(row=1, column=0, columnspan=2, pady=10, padx=5, sticky=tk.EW)
+
+        # Inicializa a lista de entradas de pedido
         self.pedido_entries = []
+
+        # Botão Adicionar Pedido
+        self.add_pedido_btn = tk.Button(self.botoes_frame, text="Adicionar Outro Pedido", command=self.add_pedido_entry)
+        self.add_pedido_btn.grid(row=0, column=0, pady=10, padx=5, sticky=tk.W)
+        
+        # Botão Excluir Pedido
+        self.del_pedido_btn = tk.Button(self.botoes_frame, text="Excluir Último Pedido", command=self.del_pedido_entry)
+        self.del_pedido_btn.grid(row=0, column=1, pady=10, padx=5, sticky=tk.W)
+        self.del_pedido_btn.grid_remove()  # Esconda o botão inicialmente
+
+        # Adiciona o primeiro pedido
         self.add_pedido_entry()
 
-        self.add_pedido_btn = tk.Button(self.adicionar_pedido_tab, text="Adicionar Outro Pedido", command=self.add_pedido_entry)
-        self.add_pedido_btn.grid(row=2, column=1, pady=10, sticky=tk.W)
-
-        # Telefone
-        tk.Label(self.adicionar_pedido_tab, text="Telefone").grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
-        self.telefone_entry = tk.Entry(self.adicionar_pedido_tab, width=25)  # Ajustando a largura do campo de telefone
-        self.telefone_entry.grid(row=3, column=1, padx=10, pady=5, sticky=tk.W)  # Ajustando a posição do campo de telefone
-
-        # Cartão
-        tk.Label(self.adicionar_pedido_tab, text="Cartão").grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
-        cartao_frame = tk.Frame(self.adicionar_pedido_tab)
-        cartao_frame.grid(row=4, column=1, padx=10, pady=5, sticky=tk.EW)
+        # Cartao
+        tk.Label(self.pedidos_frame, text= "Cartão").grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
+        pedidos_frame = tk.Frame(self.pedidos_frame)
+        pedidos_frame.grid(row=2, column=1, padx=10, pady=5, sticky=tk.EW)
         self.cartao_var = tk.StringVar(value="Nao")
-        tk.Radiobutton(cartao_frame, text="Sim", variable=self.cartao_var, value="Sim").pack(side=tk.LEFT, padx=5)
-        tk.Radiobutton(cartao_frame, text="Nao", variable=self.cartao_var, value="Nao").pack(side=tk.LEFT, padx=5)
+        tk.Radiobutton(pedidos_frame, text="Sim", variable=self.cartao_var, value="Sim").pack(side=tk.LEFT, padx=5)
+        tk.Radiobutton(pedidos_frame, text="Nao", variable=self.cartao_var, value="Nao").pack(side=tk.LEFT, padx=5)
 
         # Contato
-        tk.Label(self.adicionar_pedido_tab, text="Pedido realizado por").grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
-        contato_frame = tk.Frame(self.adicionar_pedido_tab)
-        contato_frame.grid(row=5, column=1, padx=10, pady=5, sticky=tk.EW)
+        tk.Label(self.pedidos_frame, text="Pedido realizado por").grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
+        pedidos_frame = tk.Frame(self.pedidos_frame)
+        pedidos_frame.grid(row=3, column=1, padx=10, pady=5, sticky=tk.EW)
         self.contato_var = tk.StringVar(value="WhatsApp")
-        tk.Radiobutton(contato_frame, text="Telefone", variable=self.contato_var, value="Telefone").pack(side=tk.LEFT, padx=5)
-        tk.Radiobutton(contato_frame, text="WhatsApp", variable=self.contato_var, value="WhatsApp").pack(side=tk.LEFT, padx=5)
-        tk.Radiobutton(contato_frame, text="Loja", variable=self.contato_var, value="Loja").pack(side=tk.LEFT, padx=5)
+        tk.Radiobutton(pedidos_frame, text="Telefone", variable=self.contato_var, value="Telefone").pack(side=tk.LEFT, padx=5)
+        tk.Radiobutton(pedidos_frame, text="WhatsApp", variable=self.contato_var, value="WhatsApp").pack(side=tk.LEFT, padx=5)
+        tk.Radiobutton(pedidos_frame, text="Loja", variable=self.contato_var, value="Loja").pack(side=tk.LEFT, padx=5)
+
+        # Destinatario Frame
+        self.destinatario_frame = tk.LabelFrame(self.adicionar_pedido_tab, text="Destinatário", padx=10, pady=10)
+        self.destinatario_frame.grid(row=6, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
+        self.destinatario_frame.columnconfigure(1, weight=1)
 
         # Nome do Destinatário
-        tk.Label(self.adicionar_pedido_tab, text="Nome do Destinatário").grid(row=6, column=0, padx=10, pady=5, sticky=tk.W)
-        self.destinatario_entry = tk.Entry(self.adicionar_pedido_tab, width=50)
+        tk.Label(self.destinatario_frame, text="Nome do Destinatário").grid(row=6, column=0, padx=10, pady=5, sticky=tk.W)
+        self.destinatario_entry = tk.Entry(self.destinatario_frame, width=50)
         self.destinatario_entry.grid(row=6, column=1, padx=10, pady=5, sticky=tk.EW)
 
         # Telefone do Destinatário
-        tk.Label(self.adicionar_pedido_tab, text="Telefone do Destinatário").grid(row=7, column=0, padx=10, pady=5, sticky=tk.W)
-        self.telefone_destinatario_entry = tk.Entry(self.adicionar_pedido_tab, width=25)
+        tk.Label(self.destinatario_frame, text="Telefone do Destinatário").grid(row=7, column=0, padx=10, pady=5, sticky=tk.W)
+        self.telefone_destinatario_entry = tk.Entry(self.destinatario_frame, width=25)
         self.telefone_destinatario_entry.grid(row=7, column=1, padx=10, pady=5, sticky=tk.W)
 
         # Endereço de Entrega
-        tk.Label(self.adicionar_pedido_tab, text="Endereço de Entrega").grid(row=8, column=0, padx=10, pady=5, sticky=tk.W)
-        self.endereco_entry = tk.Entry(self.adicionar_pedido_tab, width=50)
+        tk.Label(self.destinatario_frame, text="Endereço de Entrega").grid(row=8, column=0, padx=10, pady=5, sticky=tk.W)
+        self.endereco_entry = tk.Entry(self.destinatario_frame, width=50)
         self.endereco_entry.grid(row=8, column=1, padx=10, pady=5, sticky=tk.EW)
 
         # Referência
-        tk.Label(self.adicionar_pedido_tab, text="Referência").grid(row=9, column=0, padx=10, pady=5, sticky=tk.W)
-        self.referencia_entry = tk.Entry(self.adicionar_pedido_tab, width=50)
+        tk.Label(self.destinatario_frame, text="Referência").grid(row=9, column=0, padx=10, pady=5, sticky=tk.W)
+        self.referencia_entry = tk.Entry(self.destinatario_frame, width=50)
         self.referencia_entry.grid(row=9, column=1, padx=10, pady=5, sticky=tk.EW)
 
         # Data de Entrega
-        tk.Label(self.adicionar_pedido_tab, text="Data de Entrega").grid(row=10, column=0, padx=10, pady=5, sticky=tk.W)
-        self.data_entrega_entry = DateEntry(self.adicionar_pedido_tab, date_pattern='dd/MM/yyyy', width=12)  # Define a largura do campo de data
+        tk.Label(self.destinatario_frame, text="Data de Entrega").grid(row=10, column=0, padx=10, pady=5, sticky=tk.W)
+        self.data_entrega_entry = DateEntry(self.destinatario_frame, date_pattern='dd/MM/yyyy', width=12)  # Define a largura do campo de data
         self.data_entrega_entry.grid(row=10, column=1, padx=10, pady=5, sticky=tk.W)
 
-        tk.Label(self.adicionar_pedido_tab, text="Hora de Entrega").grid(row=11, column=0, padx=10, pady=5, sticky=tk.W)
-        self.hora_entrega_entry = tk.Frame(self.adicionar_pedido_tab)
+        tk.Label(self.destinatario_frame, text="Hora de Entrega").grid(row=11, column=0, padx=10, pady=5, sticky=tk.W)
+        self.hora_entrega_entry = tk.Frame(self.destinatario_frame)
         self.hora_entrega_entry.grid(row=11, column=1, padx=10, pady=5, sticky=tk.W)
 
         self.hora_var = tk.StringVar(value="00")
@@ -398,11 +430,30 @@ class PedidoApp:
 
     def add_pedido_entry(self):
         row = len(self.pedido_entries)
-        pedido_label = tk.Label(self.pedidos_frame, text=f"Pedido {row + 1}")
+        pedido_label = tk.Label(self.pedidos_inner_frame, text=f"Pedido {row + 1}")
         pedido_label.grid(row=row, column=0, padx=10, pady=5, sticky=tk.W)
-        pedido_entry = tk.Entry(self.pedidos_frame)
+        pedido_entry = tk.Entry(self.pedidos_inner_frame, width=100)
         pedido_entry.grid(row=row, column=1, padx=10, pady=5, sticky=tk.W)
-        self.pedido_entries.append(pedido_entry)
+        self.pedido_entries.append((pedido_label, pedido_entry))
+
+        # Atualizar a visibilidade do botão de excluir
+        self.update_del_pedido_btn()
+
+    def del_pedido_entry(self):
+        if self.pedido_entries:
+            label, entry = self.pedido_entries.pop()
+            label.destroy()
+            entry.destroy()
+
+        # Atualizar a visibilidade do botão de excluir
+        self.update_del_pedido_btn()
+
+    def update_del_pedido_btn(self):
+        # Esconder o botão de excluir se houver apenas um pedido
+        if len(self.pedido_entries) <= 1:
+            self.del_pedido_btn.grid_remove()
+        else:
+            self.del_pedido_btn.grid()
 
 
     def adicionar_pedido(self):
@@ -410,7 +461,8 @@ class PedidoApp:
         if not resposta:
             return
 
-        pedidos = [entry.get() for entry in self.pedido_entries]
+        # Obter os valores dos pedidos
+        pedidos = [entry.get() for _, entry in self.pedido_entries]
         hora = self.hora_var.get()
         minuto = self.minuto_var.get()
         
@@ -439,10 +491,6 @@ class PedidoApp:
 
         # Limpar os campos após adicionar
         self.nome_entry.delete(0, tk.END)
-        self.pedido_entries.clear()
-        for widget in self.pedidos_frame.winfo_children():
-            widget.destroy()
-        self.add_pedido_entry()
         self.telefone_entry.delete(0, tk.END)
         self.cartao_var.set("Nao")
         self.contato_var.set("WhatsApp")
@@ -453,6 +501,14 @@ class PedidoApp:
         self.data_entrega_entry.set_date(datetime.now())
         self.hora_var.set("00")
         self.minuto_var.set("00")
+
+        # Limpar os campos de pedido
+        self.pedido_entries.clear()
+        for widget in self.pedidos_inner_frame.winfo_children():
+            widget.destroy()
+        self.add_pedido_entry()
+
+
 
 
     def salvar_pedidos(self):
