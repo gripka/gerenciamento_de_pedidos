@@ -8,13 +8,14 @@ import tkinter.messagebox as messagebox
 from tkinter import filedialog, Tk, messagebox, LabelFrame, StringVar, Radiobutton
 import usb.core
 import usb.util
+
 class PedidoApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Gerenciador de Pedidos")
-        self.root.geometry("600x680")
+        self.root.geometry("780x680")
 
-        self.root.iconbitmap("C:\pedidos_programa\icons\icogerenciamento.ico")
+        self.root.iconbitmap("icons\\icogerenciamento.ico")
 
         self.pedidos = []
         self.logo_path = ""
@@ -42,8 +43,33 @@ class PedidoApp:
         for widget in self.configuracao_tab.winfo_children():
             widget.destroy()
 
+        # Frame para a rolagem
+        self.scrollable_config_frame = tk.Frame(self.configuracao_tab)
+        self.scrollable_config_frame.grid(row=0, column=0, sticky="nsew")
+        self.configuracao_tab.grid_rowconfigure(0, weight=1)
+        self.configuracao_tab.grid_columnconfigure(0, weight=1)
+
+        # Canvas para a rolagem
+        self.config_canvas = tk.Canvas(self.scrollable_config_frame, borderwidth=0, highlightthickness=0)
+        self.config_canvas.grid(row=0, column=0, sticky="nsew")
+
+        # Scrollbar para a rolagem
+        self.config_scrollbar = tk.Scrollbar(self.scrollable_config_frame, orient="vertical", command=self.config_canvas.yview)
+        self.config_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.config_canvas.configure(yscrollcommand=self.config_scrollbar.set)
+
+        # Frame que será colocado dentro do Canvas
+        self.scrollable_config_content = tk.Frame(self.config_canvas)
+        self.config_canvas.create_window((0, 0), window=self.scrollable_config_content, anchor="nw")
+
+        # Atualiza o scrollregion do canvas quando o conteúdo é modificado
+        self.scrollable_config_content.bind("<Configure>", lambda e: self.config_canvas.configure(scrollregion=self.config_canvas.bbox("all")))
+
+        # Configurar o Canvas para ajustar o tamanho da janela
+        self.config_canvas.bind("<Configure>", lambda e: self.config_canvas.config(width=self.scrollable_config_frame.winfo_width()))
+
         # Frame para configuração do logo
-        logo_frame = tk.LabelFrame(self.configuracao_tab, text="Configuração do Logo", padx=10, pady=10)
+        logo_frame = tk.LabelFrame(self.scrollable_config_content, text="Configuração do Logo", padx=10, pady=10)
         logo_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
         logo_frame.columnconfigure(1, weight=1)
 
@@ -58,12 +84,12 @@ class PedidoApp:
         self.remover_logo_btn.grid(row=1, column=1, pady=10, padx=10, sticky=tk.E)
 
         # Frame para configuração do cabeçalho e nome do estabelecimento
-        cabecalho_frame = tk.LabelFrame(self.configuracao_tab, text="Configuração do Pedido", padx=10, pady=10)
+        cabecalho_frame = tk.LabelFrame(self.scrollable_config_content, text="Configuração do Pedido", padx=10, pady=10)
         cabecalho_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
         cabecalho_frame.columnconfigure(1, weight=1)
 
         tk.Label(cabecalho_frame, text="Cabeçalho do Pedido").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
-        self.cabecalho_pedido_entry = tk.Entry(cabecalho_frame, width=60)
+        self.cabecalho_pedido_entry = tk.Entry(cabecalho_frame, width=88)
         self.cabecalho_pedido_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.EW)
 
         tk.Label(cabecalho_frame, text="Nome do Estabelecimento").grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
@@ -71,7 +97,7 @@ class PedidoApp:
         self.nome_estabelecimento_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.EW)
 
         # Frame para configuração da impressora
-        impressora_frame = tk.LabelFrame(self.configuracao_tab, text="Configuração da Impressora", padx=10, pady=10)
+        impressora_frame = tk.LabelFrame(self.scrollable_config_content, text="Configuração da Impressora", padx=10, pady=10)
         impressora_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
         impressora_frame.columnconfigure(1, weight=1)
 
@@ -101,6 +127,10 @@ class PedidoApp:
         # Label para mostrar a impressora selecionada
         self.impressora_selecionada_label = tk.Label(impressora_frame, text="Impressora Selecionada: Nenhuma")
         self.impressora_selecionada_label.grid(row=4, column=0, columnspan=3, pady=10, padx=10, sticky=tk.W)
+
+        # Garanta que o Frame de rolagem se ajuste ao Canvas
+        self.scrollable_config_frame.grid_rowconfigure(0, weight=1)
+        self.scrollable_config_frame.grid_columnconfigure(0, weight=1)
 
         # Botão para salvar as configurações
         self.salvar_configuracao_btn = tk.Button(self.configuracao_tab, text="Salvar Configuração", command=self.salvar_configuracao)
@@ -309,35 +339,63 @@ class PedidoApp:
         # Configurar o layout da aba de adicionar pedidos
         self.adicionar_pedido_tab.grid_rowconfigure(0, weight=0)
         self.adicionar_pedido_tab.grid_rowconfigure(1, weight=1)
-        self.adicionar_pedido_tab.grid_rowconfigure(2, weight=1)
-        self.adicionar_pedido_tab.grid_rowconfigure(3, weight=1)
-        self.adicionar_pedido_tab.grid_rowconfigure(4, weight=1)
-        self.adicionar_pedido_tab.grid_rowconfigure(5, weight=1)
-        self.adicionar_pedido_tab.grid_rowconfigure(6, weight=1)
-        self.adicionar_pedido_tab.grid_rowconfigure(7, weight=1)
-        self.adicionar_pedido_tab.grid_rowconfigure(8, weight=1)
-        self.adicionar_pedido_tab.grid_rowconfigure(9, weight=1)
-        self.adicionar_pedido_tab.grid_rowconfigure(10, weight=1)
-        self.adicionar_pedido_tab.grid_rowconfigure(11, weight=0)
-        self.adicionar_pedido_tab.grid_columnconfigure(0, weight=0)
-        self.adicionar_pedido_tab.grid_columnconfigure(1, weight=1)
+        self.adicionar_pedido_tab.grid_columnconfigure(0, weight=1)
 
-        # Comprador frame
-        self.comprador_frame = tk.LabelFrame(self.adicionar_pedido_tab, text="Comprador", padx=10, pady=10)
-        self.comprador_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
+        # Frame para a rolagem
+        self.scrollable_frame = tk.Frame(self.adicionar_pedido_tab)
+        self.scrollable_frame.grid(row=1, column=0, sticky="nsew")
+
+        # Canvas para a rolagem
+        self.canvas = tk.Canvas(self.scrollable_frame, borderwidth=0, highlightthickness=0)
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+
+        # Scrollbar para a rolagem
+        self.scrollbar = tk.Scrollbar(self.scrollable_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollbar.grid(row=0, column=1, sticky="ns")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Frame que será colocado dentro do Canvas
+        self.scrollable_frame_content = tk.Frame(self.canvas)
+        self.canvas.create_window((0, 0), window=self.scrollable_frame_content, anchor="nw")
+
+        # Atualiza o scrollregion do canvas quando o conteúdo é modificado
+        self.scrollable_frame_content.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+
+        # Garanta que o Frame de rolagem se ajuste ao Canvas
+        self.scrollable_frame.grid_rowconfigure(0, weight=1)
+        self.scrollable_frame.grid_columnconfigure(0, weight=1)
+
+        # Configurar o Canvas para ajustar o tamanho da janela
+        self.canvas.bind("<Configure>", lambda e: self.canvas.config(width=self.scrollable_frame.winfo_width()))
+
+        # Adicione widgets ao self.scrollable_frame_content
+        self.comprador_frame = tk.LabelFrame(self.scrollable_frame_content, text="Comprador", padx=10, pady=10)
+        self.comprador_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
         self.comprador_frame.columnconfigure(1, weight=1)
 
         tk.Label(self.comprador_frame, text="Nome").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
         self.nome_entry = tk.Entry(self.comprador_frame, width=50)
         self.nome_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.EW)
 
+        # Garanta que o frame e os widgets se ajustem ao tamanho da janela
+        self.scrollable_frame_content.grid_rowconfigure(0, weight=1)
+        self.scrollable_frame_content.grid_columnconfigure(0, weight=1)
+
+
+
+
+    
         # Telefone
         tk.Label(self.comprador_frame, text="Telefone").grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
         self.telefone_entry = tk.Entry(self.comprador_frame, width=25)  # Ajustando a largura do campo de telefone
         self.telefone_entry.grid(row=3, column=1, padx=10, pady=5, sticky=tk.W)
+
+        # Configurar os pesos das linhas e colunas do `scrollable_frame`
+        self.scrollable_frame.grid_rowconfigure(0, weight=1)
+        self.scrollable_frame.grid_columnconfigure(0, weight=1)
        
         # Pedidos frame
-        self.pedidos_frame = tk.LabelFrame(self.adicionar_pedido_tab, text="Pedidos", padx=10, pady=10)
+        self.pedidos_frame = tk.LabelFrame(self.scrollable_frame_content, text="Pedidos", padx=10, pady=10)
         self.pedidos_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
         self.pedidos_frame.columnconfigure(1, weight=1)
 
@@ -381,8 +439,8 @@ class PedidoApp:
         tk.Radiobutton(pedidos_frame, text="WhatsApp", variable=self.contato_var, value="WhatsApp").pack(side=tk.LEFT, padx=5)
         tk.Radiobutton(pedidos_frame, text="Loja", variable=self.contato_var, value="Loja").pack(side=tk.LEFT, padx=5)
 
-        # Destinatario Frame
-        self.destinatario_frame = tk.LabelFrame(self.adicionar_pedido_tab, text="Destinatário", padx=10, pady=10)
+        # Destinatário Frame
+        self.destinatario_frame = tk.LabelFrame(self.scrollable_frame_content, text="Destinatário", padx=10, pady=10)
         self.destinatario_frame.grid(row=6, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
         self.destinatario_frame.columnconfigure(1, weight=1)
 
@@ -408,7 +466,7 @@ class PedidoApp:
 
         # Data de Entrega
         tk.Label(self.destinatario_frame, text="Data de Entrega").grid(row=10, column=0, padx=10, pady=5, sticky=tk.W)
-        self.data_entrega_entry = DateEntry(self.destinatario_frame, date_pattern='dd/MM/yyyy', width=12)  # Define a largura do campo de data
+        self.data_entrega_entry = DateEntry(self.destinatario_frame, date_pattern='dd/MM/yyyy', width=12)
         self.data_entrega_entry.grid(row=10, column=1, padx=10, pady=5, sticky=tk.W)
 
         tk.Label(self.destinatario_frame, text="Hora de Entrega").grid(row=11, column=0, padx=10, pady=5, sticky=tk.W)
@@ -421,7 +479,9 @@ class PedidoApp:
         tk.Label(self.hora_entrega_entry, text=":").grid(row=0, column=1)
         tk.Spinbox(self.hora_entrega_entry, from_=0, to=59, textvariable=self.minuto_var, width=3, format="%02.0f").grid(row=0, column=2)
 
-
+        # Garanta que o Canvas se ajuste ao redimensionar a janela
+        self.adicionar_pedido_tab.grid_rowconfigure(1, weight=1)
+        self.adicionar_pedido_tab.grid_columnconfigure(0, weight=1)
 
         # Botão Adicionar Pedido
         self.adicionar_pedido_btn = tk.Button(self.adicionar_pedido_tab, text="Adicionar Pedido", command=self.adicionar_pedido)
