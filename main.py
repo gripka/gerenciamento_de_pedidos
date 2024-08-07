@@ -1,4 +1,3 @@
-# main.py
 print("Executando main.py")
 
 from gui import PedidoApp

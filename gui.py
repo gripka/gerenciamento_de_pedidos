@@ -15,7 +15,7 @@ class PedidoApp:
         self.root.title("Gerenciador de Pedidos")
         self.root.geometry("780x680")
 
-        self.root.iconbitmap("icons/icogerenciamento.ico")
+        self.root.iconbitmap("icons/icogerenciamento2.ico")
 
         self.pedidos = []
         self.logo_path = ""
