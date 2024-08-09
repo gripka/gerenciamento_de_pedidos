@@ -487,14 +487,20 @@ class PedidoApp:
         self.referencia_entry = tk.Entry(self.destinatario_frame, width=50)
         self.referencia_entry.grid(row=9, column=1, padx=10, pady=5, sticky=tk.EW)
 
-        # Data de Entrega
-        tk.Label(self.destinatario_frame, text="Data de Entrega").grid(row=10, column=0, padx=10, pady=5, sticky=tk.W)
-        self.data_entrega_entry = DateEntry(self.destinatario_frame, date_pattern='dd/MM/yyyy', width=12)
-        self.data_entrega_entry.grid(row=10, column=1, padx=10, pady=5, sticky=tk.W)
+       # Data de Entrega
+        tk.Label(self.destinatario_frame, text="Data de Entrega").grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
+        self.data_entrega_entry = DateEntry(
+            self.destinatario_frame,
+            date_pattern='dd/MM/yyyy',
+            width=12,
+            locale='pt_BR' 
+        )
+        self.data_entrega_entry.grid(row=4, column=1, padx=10, pady=5, sticky=tk.W)
 
-        tk.Label(self.destinatario_frame, text="Hora de Entrega").grid(row=11, column=0, padx=10, pady=5, sticky=tk.W)
+        # Hora de Entrega
+        tk.Label(self.destinatario_frame, text="Hora de Entrega").grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
         self.hora_entrega_entry = tk.Frame(self.destinatario_frame)
-        self.hora_entrega_entry.grid(row=11, column=1, padx=10, pady=5, sticky=tk.W)
+        self.hora_entrega_entry.grid(row=5, column=1, padx=10, pady=5, sticky=tk.W)
 
         self.hora_var = tk.StringVar(value="00")
         self.minuto_var = tk.StringVar(value="00")

@@ -77,7 +77,7 @@ def imprimir_pedido(pedido):
         printer.text(f"Contato: {pedido.get('Contato', '')}\n")
         
         # Imprimir informações de pagamento
-        pagamento_realizado = pedido.get('Pagamento Realizado', False)
+        pagamento_realizado = pedido.get('Pagamento realizado', False)
         if pagamento_realizado:
             printer.text(f"Pagamento Realizado\n")
         else:
