@@ -75,6 +75,14 @@ def imprimir_pedido(pedido):
         printer.text(f"Telefone: {pedido.get('Telefone', '')}\n")
         printer.text(f"Cartao: {pedido.get('Cartão', '')}\n")
         printer.text(f"Contato: {pedido.get('Contato', '')}\n")
+        
+        # Imprimir informações de pagamento
+        pagamento_realizado = pedido.get('Pagamento Realizado', False)
+        if pagamento_realizado:
+            printer.text(f"Pagamento Realizado\n")
+        else:
+            valor_pagamento = pedido.get('Valor do Pedido', '')
+            printer.text(f"Pagamento pendente: {valor_pagamento}\n")
 
         # Adicionar uma linha de separação antes dos detalhes do destinatário
         printer.set(align='center')

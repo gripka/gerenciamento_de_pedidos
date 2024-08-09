@@ -383,10 +383,6 @@ class PedidoApp:
         # Garanta que o frame e os widgets se ajustem ao tamanho da janela
         self.scrollable_frame_content.grid_rowconfigure(0, weight=1)
         self.scrollable_frame_content.grid_columnconfigure(0, weight=1)
-
-
-
-
     
         # Telefone
         tk.Label(self.comprador_frame, text="Telefone").grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
@@ -442,6 +438,30 @@ class PedidoApp:
         tk.Radiobutton(pedidos_frame, text="WhatsApp", variable=self.contato_var, value="WhatsApp").pack(side=tk.LEFT, padx=5)
         tk.Radiobutton(pedidos_frame, text="Loja", variable=self.contato_var, value="Loja").pack(side=tk.LEFT, padx=5)
 
+
+        # Pagamento Frame
+        self.pagamento_frame = tk.LabelFrame(self.scrollable_frame_content, text="Pagamento", padx=10, pady=10)
+        self.pagamento_frame.grid(row=5, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
+        self.pagamento_frame.columnconfigure(1, weight=1)
+
+        # Opção de pagamento
+        self.pagamento_realizado_var = tk.IntVar(value=0)
+        self.pagamento_checkbutton = tk.Checkbutton(self.pagamento_frame, text="Pagamento Realizado", variable=self.pagamento_realizado_var, command=self.toggle_pagamento_entry)
+        self.pagamento_checkbutton.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+
+        # Campo para inserir o valor do pedido
+        self.valor_pedido_label = tk.Label(self.pagamento_frame, text="Valor do Pedido")
+        self.valor_pedido_entry = tk.Entry(self.pagamento_frame, width=20, validate="key")
+        self.valor_pedido_label.grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
+        self.valor_pedido_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.W)
+
+        # Vincular o evento de formatação ao campo de valor do pedido
+        self.valor_pedido_entry.bind('<KeyRelease>', self.formatar_valor)
+
+        # Inicialmente, desabilite a entrada de valor do pedido
+        self.toggle_pagamento_entry()
+
+
         # Destinatário Frame
         self.destinatario_frame = tk.LabelFrame(self.scrollable_frame_content, text="Destinatário", padx=10, pady=10)
         self.destinatario_frame.grid(row=6, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
@@ -490,7 +510,33 @@ class PedidoApp:
         self.adicionar_pedido_btn = tk.Button(self.adicionar_pedido_tab, text="Adicionar Pedido", command=self.adicionar_pedido)
         self.adicionar_pedido_btn.grid(row=12, column=0, columnspan=2, pady=10)
 
+    def formatar_valor(self, event):
+        # Obtém o valor atual digitado
+        valor = self.valor_pedido_entry.get()
 
+        # Remove qualquer caractere não numérico (exceto vírgulas e pontos)
+        valor = ''.join(filter(str.isdigit, valor))
+
+        # Adiciona a vírgula para os centavos e ponto para separar milhares
+        if len(valor) > 2:
+            valor = f'{int(valor[:-2]):,}.{valor[-2:]}'
+            valor = valor.replace(',', '.')
+
+        elif len(valor) > 0:
+            valor = f'0.{valor.zfill(2)}'
+
+        # Atualiza o campo com o valor formatado
+        self.valor_pedido_entry.delete(0, tk.END)
+        self.valor_pedido_entry.insert(0, valor)
+
+    def toggle_pagamento_entry(self):
+        if self.pagamento_realizado_var.get():
+            self.valor_pedido_label.grid_remove()
+            self.valor_pedido_entry.grid_remove()
+        else:
+            self.valor_pedido_label.grid()
+            self.valor_pedido_entry.grid()
+            
     def add_pedido_entry(self):
         row = len(self.pedido_entries)
         pedido_label = tk.Label(self.pedidos_inner_frame, text=f"Pedido {row + 1}")
@@ -528,7 +574,11 @@ class PedidoApp:
         pedidos = [entry.get() for _, entry in self.pedido_entries]
         hora = self.hora_var.get()
         minuto = self.minuto_var.get()
-        
+
+        # Adicionar dados de pagamento
+        pagamento_realizado = bool(self.pagamento_realizado_var.get())
+        valor_pedido = self.valor_pedido_entry.get()
+
         pedido = {
             "Nome do Comprador": self.nome_entry.get(),
             "Pedidos": pedidos,
@@ -541,8 +591,11 @@ class PedidoApp:
             "Referência": self.referencia_entry.get(),
             "Data de Entrega": self.data_entrega_entry.get_date().strftime("%d/%m/%Y"),
             "Hora de Entrega": f"{hora.zfill(2)}:{minuto.zfill(2)}",
-            "Data do Pedido": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            "Data do Pedido": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "Pagamento Realizado": pagamento_realizado,
+            "Valor do Pedido": valor_pedido
         }
+        
         self.pedidos.append(pedido)
         self.atualizar_lista_pedidos()
         self.salvar_pedidos()
@@ -564,6 +617,7 @@ class PedidoApp:
         self.data_entrega_entry.set_date(datetime.now())
         self.hora_var.set("00")
         self.minuto_var.set("00")
+        self.valor_pedido_entry.delete(0, tk.END)
 
         # Limpar os campos de pedido
         self.pedido_entries.clear()
