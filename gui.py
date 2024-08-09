@@ -32,6 +32,9 @@ class PedidoApp:
 
         self.tab_control.pack(expand=1, fill="both")
 
+        # Seleciona a aba "Adicionar Pedido" ao iniciar o aplicativo
+        self.tab_control.select(self.adicionar_pedido_tab)
+
         self.create_lista_pedidos_tab()
         self.create_adicionar_pedido_tab()
         self.create_configuracao_tab()
