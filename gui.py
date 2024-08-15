@@ -42,6 +42,7 @@ class PedidoApp:
         self.carregar_pedidos()
         self.atualizar_lista_pedidos()
 
+
     def create_configuracao_tab(self):
         for widget in self.configuracao_tab.winfo_children():
             widget.destroy()
@@ -392,7 +393,7 @@ class PedidoApp:
         # Configurar os pesos das linhas e colunas do `scrollable_frame`
         self.scrollable_frame.grid_rowconfigure(0, weight=1)
         self.scrollable_frame.grid_columnconfigure(0, weight=1)
-       
+
         # Pedidos frame
         self.pedidos_frame = tk.LabelFrame(self.scrollable_frame_content, text="Pedidos", padx=10, pady=10)
         self.pedidos_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
@@ -488,19 +489,29 @@ class PedidoApp:
         self.referencia_entry.grid(row=9, column=1, padx=10, pady=5, sticky=tk.EW)
 
         # Data de Entrega
-        tk.Label(self.destinatario_frame, text="Data de Entrega").grid(row=10, column=0, padx=10, pady=5, sticky=tk.W)
-        self.data_entrega_entry = DateEntry(self.destinatario_frame, date_pattern='dd/MM/yyyy', width=12)
-        self.data_entrega_entry.grid(row=10, column=1, padx=10, pady=5, sticky=tk.W)
+        tk.Label(self.destinatario_frame, text="Data de Entrega").grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
+        self.data_entrega_entry = DateEntry(
+            self.destinatario_frame,
+            date_pattern='dd/MM/yyyy',
+            width=12,
+            locale='pt_BR' 
+        )
+        self.data_entrega_entry.grid(row=4, column=1, padx=10, pady=5, sticky=tk.W)
 
-        tk.Label(self.destinatario_frame, text="Hora de Entrega").grid(row=11, column=0, padx=10, pady=5, sticky=tk.W)
+        # Hora de Entrega
+        tk.Label(self.destinatario_frame, text="Hora de Entrega").grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
         self.hora_entrega_entry = tk.Frame(self.destinatario_frame)
-        self.hora_entrega_entry.grid(row=11, column=1, padx=10, pady=5, sticky=tk.W)
+        self.hora_entrega_entry.grid(row=5, column=1, padx=10, pady=5, sticky=tk.W)
 
         self.hora_var = tk.StringVar(value="00")
         self.minuto_var = tk.StringVar(value="00")
-        tk.Spinbox(self.hora_entrega_entry, from_=0, to=23, textvariable=self.hora_var, width=3, format="%02.0f").grid(row=0, column=0)
+
+        vcmd_hora = (self.destinatario_frame.register(self.validate_hour), '%P')
+        vcmd_minuto = (self.destinatario_frame.register(self.validate_minute), '%P')
+
+        tk.Spinbox(self.hora_entrega_entry, from_=0, to=23, textvariable=self.hora_var, width=3, format="%02.0f", validate='key', validatecommand=vcmd_hora).grid(row=0, column=0)
         tk.Label(self.hora_entrega_entry, text=":").grid(row=0, column=1)
-        tk.Spinbox(self.hora_entrega_entry, from_=0, to=59, textvariable=self.minuto_var, width=3, format="%02.0f").grid(row=0, column=2)
+        tk.Spinbox(self.hora_entrega_entry, from_=0, to=59, textvariable=self.minuto_var, width=3, format="%02.0f", validate='key', validatecommand=vcmd_minuto).grid(row=0, column=2)
 
         # Garanta que o Canvas se ajuste ao redimensionar a janela
         self.adicionar_pedido_tab.grid_rowconfigure(1, weight=1)
@@ -509,6 +520,20 @@ class PedidoApp:
         # Botão Adicionar Pedido
         self.adicionar_pedido_btn = tk.Button(self.adicionar_pedido_tab, text="Adicionar Pedido", command=self.adicionar_pedido)
         self.adicionar_pedido_btn.grid(row=12, column=0, columnspan=2, pady=10)
+
+    def validate_hour(self, value_if_allowed):
+        if value_if_allowed.isdigit() and 0 <= int(value_if_allowed) <= 23:
+            return True
+        elif value_if_allowed == "":
+            return True
+        return False
+
+    def validate_minute(self, value_if_allowed):
+        if value_if_allowed.isdigit() and 0 <= int(value_if_allowed) <= 59:
+            return True
+        elif value_if_allowed == "":
+            return True
+        return False
 
     def formatar_valor(self, event):
         # Obtém o valor atual digitado
@@ -536,7 +561,16 @@ class PedidoApp:
         else:
             self.valor_pedido_label.grid()
             self.valor_pedido_entry.grid()
-            
+
+    def capturar_valor_pedido(self):
+        if self.pagamento_realizado_var.get() == 0:
+            valor = self.valor_pedido_entry.get()
+            return valor
+        return None
+
+    def capturar_pagamento_realizado(self):
+        return self.pagamento_realizado_var.get() == 1
+
     def add_pedido_entry(self):
         row = len(self.pedido_entries)
         pedido_label = tk.Label(self.pedidos_inner_frame, text=f"Pedido {row + 1}")
