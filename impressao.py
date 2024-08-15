@@ -2,6 +2,7 @@ from escpos.printer import Usb
 from PIL import Image
 from datetime import datetime
 import json
+import textwrap
 
 def converter_para_cp437(texto):
     try:
@@ -77,7 +78,9 @@ def imprimir_pedido(pedido):
         printer.text(f"Contato: {pedido.get('Contato', '')}\n")
         
         # Imprimir informações de pagamento
-        pagamento_realizado = pedido.get('Pagamento realizado', False)
+        print(f"Conteúdo do pedido: {pedido}")  # Debugging line
+        pagamento_realizado = pedido.get('Pagamento Realizado', False)
+        print(f"Pagamento realizado: {pagamento_realizado}")  # Debugging line
         if pagamento_realizado:
             printer.text(f"Pagamento Realizado\n")
         else:
@@ -90,9 +93,12 @@ def imprimir_pedido(pedido):
         printer.text("Detalhes do Destinatario\n")
         printer.text("==========================================\n")
         printer.set(align='left')
+
+        endereco_entrega = pedido.get('Endereço de Entrega', '')
+        endereco_quebrado = textwrap.fill(endereco_entrega, width=45)
         printer.text(f"Nome do Destinatario: {pedido.get('Nome do Destinatário', '')}\n")
         printer.text(f"Telefone do Destinatario: {pedido.get('Telefone do Destinatário', '')}\n")
-        printer.text(f"Endereco de Entrega: {pedido.get('Endereço de Entrega', '')}\n")
+        printer.text(f"Endereco de Entrega: \n{endereco_quebrado}\n")
         printer.text(f"Referencia: {pedido.get('Referência', '')}\n")
         printer.text(f"Data de Entrega: {pedido.get('Data de Entrega', '')}\n")
         printer.text(f"Hora de Entrega: {pedido.get('Hora de Entrega', '')}\n")
