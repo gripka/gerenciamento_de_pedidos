@@ -42,7 +42,6 @@ class PedidoApp:
         self.carregar_pedidos()
         self.atualizar_lista_pedidos()
 
-
     def create_configuracao_tab(self):
         for widget in self.configuracao_tab.winfo_children():
             widget.destroy()
@@ -195,8 +194,6 @@ class PedidoApp:
             print("Nenhuma impressora USB encontrada.")
         return impressoras
 
-
-
     def selecionar_logo(self):
         caminho_logo = filedialog.askopenfilename(title="Selecione o Logo", filetypes=[("Imagens", "*.png;*.jpg;*.jpeg")])
         if caminho_logo:
@@ -237,10 +234,6 @@ class PedidoApp:
         except Exception as e:
             print(f"Erro ao salvar configuração: {e}")
             tk.messagebox.showerror("Erro", "Não foi possível salvar a configuração.")
-
-
-
-
 
     def carregar_configuracao(self):
         try:
@@ -289,9 +282,6 @@ class PedidoApp:
             self.printer_var.set("Nenhuma")
             self.impressora_selecionada_label.config(text="Impressora Selecionada: Nenhuma")
 
-
-
-
     def create_lista_pedidos_tab(self):
         # Configuração do layout da aba de lista de pedidos
         self.lista_pedidos_tab.grid_rowconfigure(0, weight=1)
@@ -299,23 +289,26 @@ class PedidoApp:
         self.lista_pedidos_tab.grid_rowconfigure(2, weight=0)
         self.lista_pedidos_tab.grid_columnconfigure(0, weight=1)
 
+        # Frame para agrupar o rótulo e a barra de busca
+        search_frame = tk.Frame(self.lista_pedidos_tab)
+        search_frame.grid(row=0, column=0, columnspan=2, pady=5, padx=10, sticky=tk.EW)
+
         # Barra de Busca
-        tk.Label(self.lista_pedidos_tab, text="Buscar:").grid(row=0, column=0, pady=5, padx=10, sticky=tk.W)
-        self.busca_entry = tk.Entry(self.lista_pedidos_tab)
-        self.busca_entry.grid(row=0, column=1, pady=5, padx=10, sticky=tk.EW)
+        tk.Label(search_frame, text="Buscar:").grid(row=0, column=0, pady=5, padx=(0, 5), sticky=tk.W)
+        self.busca_entry = tk.Entry(search_frame, width=50)
+        self.busca_entry.grid(row=0, column=1, pady=5, padx=(5, 0), sticky=tk.EW)
         self.busca_entry.bind("<KeyRelease>", self.filtrar_pedidos)
 
         # Configurar a coluna para expandir a barra de busca
         self.lista_pedidos_tab.grid_columnconfigure(1, weight=1)
 
-
         # Treeview para exibir os pedidos
-        self.tree = ttk.Treeview(self.lista_pedidos_tab, columns=("Nome", "Data do Pedido", "Telefone", "Cartão", "Pedido realizado por", "Nome do Destinatário", "Telefone do Destinatário", "Endereço de Entrega", "Referência", "Data de Entrega", "Hora de Entrega"), show='headings')
+        self.tree = ttk.Treeview(self.lista_pedidos_tab, columns=("Nome do Comprador", "Data do Pedido", "Telefone", "Cartão", "Pedido realizado por", "Nome do Destinatário", "Telefone do Destinatário", "Endereço de Entrega", "Referência", "Data de Entrega", "Hora de Entrega"), show='headings')
         
         # Cabeçalhos das colunas
         for col in self.tree["columns"]:
-            self.tree.heading(col, text=col)
-            self.tree.column(col, width=100, anchor=tk.W)
+            self.tree.heading(col, text=col, command=lambda _col=col: self.sort_column(_col, False))
+            self.tree.column(col, width=150, anchor=tk.W)
         
         self.tree.grid(row=1, column=0, columnspan=2, sticky="nsew")
 
@@ -338,6 +331,19 @@ class PedidoApp:
         # Atualizar a lista de pedidos
         self.atualizar_lista_pedidos()
 
+    def sort_column(self, col, reverse):
+        # Obtém os dados da Treeview
+        data = [(self.tree.set(child, col), child) for child in self.tree.get_children('')]
+        
+        # Ordena os dados
+        data.sort(reverse=reverse)
+        
+        # Reorganiza os itens na Treeview
+        for index, (val, child) in enumerate(data):
+            self.tree.move(child, '', index)
+        
+        # Alterna a ordem de classificação
+        self.tree.heading(col, command=lambda: self.sort_column(col, not reverse))
 
     def create_adicionar_pedido_tab(self):
         # Configurar o layout da aba de adicionar pedidos
@@ -598,7 +604,6 @@ class PedidoApp:
         else:
             self.del_pedido_btn.grid()
 
-
     def adicionar_pedido(self):
         resposta = messagebox.askyesno("Confirmar", "Deseja realmente adicionar este pedido?")
         if not resposta:
@@ -659,13 +664,9 @@ class PedidoApp:
             widget.destroy()
         self.add_pedido_entry()
 
-
-
-
     def salvar_pedidos(self):
         with open("pedidos.json", "w") as arquivo:
             json.dump(self.pedidos, arquivo, indent=4)
-
 
     def carregar_pedidos(self):
         try:
@@ -674,27 +675,29 @@ class PedidoApp:
         except FileNotFoundError:
             self.pedidos = []
 
-
     def atualizar_lista_pedidos(self):
-        # Ordenar pedidos por data, mais recente primeiro
         self.pedidos.sort(key=lambda x: datetime.strptime(x['Data do Pedido'], "%d/%m/%Y %H:%M:%S"), reverse=True)
         
-        self.tree.delete(*self.tree.get_children())
-        for pedido in self.pedidos:
-            self.tree.insert('', 'end', values=(
-                pedido["Nome do Comprador"],
-                pedido["Data do Pedido"],
-                pedido["Telefone"],
-                pedido["Cartão"],
-                pedido["Pedido realizado por"],
-                pedido["Nome do Destinatário"],
-                pedido["Telefone do Destinatário"],
-                pedido["Endereço de Entrega"],
-                pedido["Referência"],
-                pedido["Data de Entrega"],
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        for index, pedido in enumerate(self.pedidos):
+            tag = 'evenrow' if index % 2 == 0 else 'oddrow'
+            self.tree.insert("", "end", values=(
+                pedido["Nome do Comprador"], 
+                pedido["Data do Pedido"], 
+                pedido["Telefone"], 
+                pedido["Cartão"], 
+                pedido["Pedido realizado por"], 
+                pedido["Nome do Destinatário"], 
+                pedido["Telefone do Destinatário"], 
+                pedido["Endereço de Entrega"], 
+                pedido["Referência"], 
+                pedido["Data de Entrega"], 
                 pedido["Hora de Entrega"]
-            ))
-
+            ), tags=(tag,)
+            )
+        self.tree.tag_configure('oddrow', background='GhostWhite')
+        self.tree.tag_configure('evenrow', background='white')
 
     def filtrar_pedidos(self, event):
         query = self.busca_entry.get().lower()
@@ -718,7 +721,6 @@ class PedidoApp:
                 pedido["Hora de Entrega"]
             ))
 
-
     def imprimir_pedidos_selecionados(self):
         selecionados = self.tree.selection()
         if not selecionados:
@@ -736,8 +738,6 @@ class PedidoApp:
                 imprimir_pedido(pedido)
         messagebox.showinfo("Sucesso", "Pedidos impressos com sucesso!")
 
-
-
     def apagar_pedidos_selecionados(self):
         selecionados = self.tree.selection()
         if not selecionados:
@@ -754,75 +754,6 @@ class PedidoApp:
             self.tree.delete(item)
         self.salvar_pedidos()
         messagebox.showinfo("Sucesso", "Pedidos apagados com sucesso!")
-
-    def atualizar_idioma(idioma):
-        # Atualiza os textos da interface com base no idioma selecionado
-        with open('config.json', 'r') as file:
-            config = json.load(file)
-        config['idioma'] = idioma
-        with open('config.json', 'w') as file:
-            json.dump(config, file, indent=4)
-        carregar_textos(idioma)
-
-    # Função para carregar textos
-    def carregar_textos(idioma):
-        textos = {
-            "pt": {
-                "configuracao": "Configuração",
-                "idioma": "Gerenciamento de Idiomas",
-                "portugues": "Português",
-                "ingles": "Inglês"
-            },
-            "en": {
-                "configuracao": "Configuration",
-                "idioma": "Language Management",
-                "portugues": "Portuguese",
-                "ingles": "English"
-            }
-        }
-        textos_interface = textos[idioma]
-        label_configuracao.config(text=textos_interface["configuracao"])
-        label_idioma.config(text=textos_interface["idioma"])
-        botao_portugues.config(text=textos_interface["portugues"])
-        botao_ingles.config(text=textos_interface["ingles"])
-
-    # Função para criar a interface
-    def criar_interface():
-        root = tk.Tk()
-        root.title("Configuração")
-
-        # Frame de configuração
-        config_frame = LabelFrame(root, text="Configuração", padx=10, pady=10)
-        config_frame.pack(padx=10, pady=10, fill="both", expand=True)
-
-        # LabelFrame para idiomas
-        idioma_frame = LabelFrame(config_frame, text="Gerenciamento de Idiomas", padx=10, pady=10)
-        idioma_frame.pack(padx=10, pady=10, fill="both", expand=True)
-
-        idioma_var = StringVar(value="pt")
-        
-        # Botões de idioma
-        botao_portugues = Radiobutton(idioma_frame, text="Português", variable=idioma_var, value="pt", command=lambda: atualizar_idioma("pt"))
-        botao_portugues.pack(anchor="w")
-        
-        botao_ingles = Radiobutton(idioma_frame, text="Inglês", variable=idioma_var, value="en", command=lambda: atualizar_idioma("en"))
-        botao_ingles.pack(anchor="w")
-        
-        # Labels para textos
-        global label_configuracao, label_idioma
-        label_configuracao = tk.Label(config_frame, text="")
-        label_configuracao.pack(pady=5)
-        
-        label_idioma = tk.Label(idioma_frame, text="")
-        label_idioma.pack(pady=5)
-
-        # Carregar configuração inicial
-        with open('config.json', 'r') as file:
-            config = json.load(file)
-        idioma = config.get('idioma', 'pt')
-        carregar_textos(idioma)
-
-
 
 if __name__ == "__main__":
     root = tk.Tk()
