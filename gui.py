@@ -8,6 +8,7 @@ import tkinter.messagebox as messagebox
 from tkinter import filedialog, Tk, messagebox, LabelFrame, StringVar, Radiobutton
 import usb.core
 import usb.util
+import locale
 
 class PedidoApp:
     def __init__(self, root):
@@ -23,10 +24,11 @@ class PedidoApp:
         self.tab_control = ttk.Notebook(root)
 
         self.lista_pedidos_tab = ttk.Frame(self.tab_control)
+        self.tab_control.add(self.lista_pedidos_tab, text="Lista de Pedidos")
+
         self.adicionar_pedido_tab = ttk.Frame(self.tab_control)
         self.configuracao_tab = ttk.Frame(self.tab_control)
 
-        self.tab_control.add(self.lista_pedidos_tab, text="Lista de Pedidos")
         self.tab_control.add(self.adicionar_pedido_tab, text="Adicionar Pedido")
         self.tab_control.add(self.configuracao_tab, text="Configuração")
 
@@ -138,11 +140,6 @@ class PedidoApp:
         # Botão para salvar as configurações
         self.salvar_configuracao_btn = tk.Button(self.configuracao_tab, text="Salvar Configuração", command=self.salvar_configuracao)
         self.salvar_configuracao_btn.grid(row=3, column=0, columnspan=2, pady=10)
-
-
-        # Botão Adicionar Pedido
-        self.adicionar_pedido_btn = tk.Button(self.adicionar_pedido_tab, text="Adicionar Pedido", command=self.adicionar_pedido)
-        self.adicionar_pedido_btn.grid(row=12, column=0, columnspan=2, pady=10)
 
         self.carregar_configuracao()
         self.atualizar_lista_impressoras()
@@ -303,7 +300,7 @@ class PedidoApp:
         self.lista_pedidos_tab.grid_columnconfigure(1, weight=1)
 
         # Treeview para exibir os pedidos
-        self.tree = ttk.Treeview(self.lista_pedidos_tab, columns=("Nome do Comprador", "Data do Pedido", "Telefone", "Cartão", "Pedido realizado por", "Nome do Destinatário", "Telefone do Destinatário", "Endereço de Entrega", "Referência", "Data de Entrega", "Hora de Entrega"), show='headings')
+        self.tree = ttk.Treeview(self.lista_pedidos_tab, columns=("Nome do Comprador", "Pedidos", "Data do Pedido", "Telefone", "Cartão", "Pedido realizado por", "Nome do Destinatário", "Telefone do Destinatário", "Endereço de Entrega", "Referência", "Data de Entrega", "Hora de Entrega"), show='headings')
         
         # Cabeçalhos das colunas
         for col in self.tree["columns"]:
@@ -327,9 +324,200 @@ class PedidoApp:
         
         self.apagar_btn = tk.Button(self.lista_pedidos_tab, text="Apagar Selecionados", command=self.apagar_pedidos_selecionados)
         self.apagar_btn.grid(row=3, column=1, pady=10, padx=10, sticky=tk.E)
-        
+
+        self.editar_btn = tk.Button(self.lista_pedidos_tab, text="Editar Selecionado", command=self.editar_pedido_selecionado)
+        self.editar_btn.grid(row=0, column=1, pady=10, padx=10, sticky=tk.W)
+
         # Atualizar a lista de pedidos
         self.atualizar_lista_pedidos()
+
+    def editar_pedido_selecionado(self):
+        # Obter o item selecionado no Treeview
+        selected_item = self.tree.selection()
+        if not selected_item:
+            messagebox.showwarning("Aviso", "Nenhum pedido selecionado.")
+            return
+
+        # Obter o índice do pedido selecionado
+        pedido_index = self.tree.index(selected_item[0])
+        pedido = self.pedidos[pedido_index]
+
+        # Chamar abrir_modal_edicao com pedido e pedido_index
+        self.abrir_modal_edicao(pedido, pedido_index)
+
+    def abrir_modal_edicao(self, pedido, pedido_index):
+        modal = tk.Toplevel(self.root)
+        modal.title("Editar Pedido")
+
+        # Definir o ícone do modal
+        modal.iconbitmap("icons/icogerenciamento2.ico")
+
+        # Configurar o modal para bloquear a janela de fundo
+        modal.transient(self.root)
+        modal.grab_set()
+
+        # Campos de edição
+        tk.Label(modal, text="Nome do Comprador").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        self.nome_entry = tk.Entry(modal, width=40)
+        self.nome_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.W)
+        self.nome_entry.insert(0, pedido["Nome do Comprador"])
+
+        tk.Label(modal, text="Telefone").grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
+        self.telefone_entry = tk.Entry(modal, width=40)
+        self.telefone_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.W)
+        self.telefone_entry.insert(0, pedido["Telefone"])
+
+        # Inicializar os campos de pedidos
+        self.pedido_entries = []
+        self.pedidos_inner_frame = tk.Frame(modal)
+        self.pedidos_inner_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=5, sticky=tk.W)
+
+        for i, pedido_item in enumerate(pedido["Pedidos"]):
+            pedido_label = tk.Label(self.pedidos_inner_frame, text=f"Pedido {i + 1}")
+            pedido_label.grid(row=i, column=0, padx=10, pady=5, sticky=tk.W)
+            pedido_entry = tk.Entry(self.pedidos_inner_frame, width=40)
+            pedido_entry.grid(row=i, column=1, padx=10, pady=5, sticky=tk.W)
+            pedido_entry.insert(0, pedido_item)
+            self.pedido_entries.append((pedido_label, pedido_entry))
+
+        # Botões para adicionar e remover pedidos
+        self.botoes_frame = tk.Frame(modal)
+        self.botoes_frame.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky=tk.W)
+
+        self.add_pedido_btn = tk.Button(self.botoes_frame, text="Adicionar Outro Pedido", command=self.add_pedido_entry_modal)
+        self.add_pedido_btn.grid(row=0, column=0, pady=10, padx=5, sticky=tk.W)
+
+        self.del_pedido_btn = tk.Button(self.botoes_frame, text="Excluir Último Pedido", command=self.del_pedido_entry_modal)
+        self.del_pedido_btn.grid(row=0, column=1, pady=10, padx=5, sticky=tk.W)
+        if len(self.pedido_entries) <= 1:
+            self.del_pedido_btn.grid_remove()
+
+
+        # Cartão
+        tk.Label(modal, text="Cartão").grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
+        cartao_frame = tk.Frame(modal)
+        cartao_frame.grid(row=4, column=1, padx=10, pady=5, sticky=tk.W)
+        self.cartao_var = tk.StringVar(value=pedido["Cartão"])
+        tk.Radiobutton(cartao_frame, text="Sim", variable=self.cartao_var, value="Sim").pack(side=tk.LEFT, padx=5)
+        tk.Radiobutton(cartao_frame, text="Nao", variable=self.cartao_var, value="Nao").pack(side=tk.LEFT, padx=5)
+
+        # Pedido realizado por
+        tk.Label(modal, text="Pedido realizado por").grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
+        contato_frame = tk.Frame(modal)
+        contato_frame.grid(row=5, column=1, padx=10, pady=5, sticky=tk.W)
+        self.contato_var = tk.StringVar(value=pedido["Pedido realizado por"])
+        tk.Radiobutton(contato_frame, text="Telefone", variable=self.contato_var, value="Telefone").pack(side=tk.LEFT, padx=5)
+        tk.Radiobutton(contato_frame, text="WhatsApp", variable=self.contato_var, value="WhatsApp").pack(side=tk.LEFT, padx=5)
+        tk.Radiobutton(contato_frame, text="Loja", variable=self.contato_var, value="Loja").pack(side=tk.LEFT, padx=5)
+
+        tk.Label(modal, text="Nome do Destinatário").grid(row=6, column=0, padx=10, pady=5, sticky=tk.W)
+        self.destinatario_entry = tk.Entry(modal, width=40)
+        self.destinatario_entry.grid(row=6, column=1, padx=10, pady=5, sticky=tk.W)
+        self.destinatario_entry.insert(0, pedido["Nome do Destinatário"])
+
+        tk.Label(modal, text="Telefone do Destinatário").grid(row=7, column=0, padx=10, pady=5, sticky=tk.W)
+        self.telefone_destinatario_entry = tk.Entry(modal, width=40)
+        self.telefone_destinatario_entry.grid(row=7, column=1, padx=10, pady=5, sticky=tk.W)
+        self.telefone_destinatario_entry.insert(0, pedido["Telefone do Destinatário"])
+
+        tk.Label(modal, text="Endereço de Entrega").grid(row=8, column=0, padx=10, pady=5, sticky=tk.W)
+        self.endereco_entry = tk.Entry(modal, width=40)
+        self.endereco_entry.grid(row=8, column=1, padx=10, pady=5, sticky=tk.W)
+        self.endereco_entry.insert(0, pedido["Endereço de Entrega"])
+
+        tk.Label(modal, text="Referência").grid(row=9, column=0, padx=10, pady=5, sticky=tk.W)
+        self.referencia_entry = tk.Entry(modal, width=40)
+        self.referencia_entry.grid(row=9, column=1, padx=10, pady=5, sticky=tk.W)
+        self.referencia_entry.insert(0, pedido["Referência"])
+
+        # Data de Entrega
+        tk.Label(modal, text="Data de Entrega").grid(row=10, column=0, padx=10, pady=5, sticky=tk.W)
+        self.data_entrega_entry = DateEntry(modal, width=12, date_pattern='dd/MM/yyyy', locale='pt_BR')
+        self.data_entrega_entry.grid(row=10, column=1, padx=10, pady=5, sticky=tk.W)
+        self.data_entrega_entry.set_date(datetime.strptime(pedido["Data de Entrega"], "%d/%m/%Y"))
+
+        # Hora de Entrega
+        tk.Label(modal, text="Hora de Entrega").grid(row=11, column=0, padx=10, pady=5, sticky=tk.W)
+        hora_entrega_frame = tk.Frame(modal)
+        hora_entrega_frame.grid(row=11, column=1, padx=10, pady=5, sticky=tk.W)
+
+        self.hora_var = tk.StringVar(value=pedido["Hora de Entrega"].split(":")[0])
+        self.minuto_var = tk.StringVar(value=pedido["Hora de Entrega"].split(":")[1])
+
+        vcmd_hora = (modal.register(self.validate_hour), '%P')
+        vcmd_minuto = (modal.register(self.validate_minute), '%P')
+
+        tk.Spinbox(hora_entrega_frame, from_=0, to=23, textvariable=self.hora_var, width=3, format="%02.0f", validate='key', validatecommand=vcmd_hora).grid(row=0, column=0, sticky=tk.W)
+        tk.Label(hora_entrega_frame, text=":").grid(row=0, column=1, sticky=tk.W)
+        tk.Spinbox(hora_entrega_frame, from_=0, to=59, textvariable=self.minuto_var, width=3, format="%02.0f", validate='key', validatecommand=vcmd_minuto).grid(row=0, column=2, sticky=tk.W)
+
+        # Pagamento Realizado e Valor do Pedido
+        pagamento_frame = tk.Frame(modal)
+        pagamento_frame.grid(row=12, column=0, columnspan=2, padx=10, pady=5, sticky=tk.W)
+
+        self.pagamento_realizado_var = tk.IntVar(value=1 if pedido["Pagamento Realizado"] else 0)
+        pagamento_checkbutton = tk.Checkbutton(pagamento_frame, text="Pagamento Realizado", variable=self.pagamento_realizado_var, command=lambda: self.toggle_pagamento_entry(self.valor_pedido_entry, self.pagamento_realizado_var))
+        pagamento_checkbutton.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+
+        valor_pedido_label = tk.Label(pagamento_frame, text="Valor do Pedido")
+        self.valor_pedido_entry = tk.Entry(pagamento_frame, width=20, validate="key")
+        valor_pedido_label.grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
+        self.valor_pedido_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.W)
+        self.valor_pedido_entry.insert(0, pedido["Valor do Pedido"])
+
+        # Vincular o evento de formatação ao campo de valor do pedido
+        self.valor_pedido_entry.bind('<KeyRelease>', lambda event: self.formatar_valor(event, self.valor_pedido_entry))
+
+        # Inicialmente, desabilite a entrada de valor do pedido se pagamento realizado estiver marcado
+        self.toggle_pagamento_entry(self.valor_pedido_entry, self.pagamento_realizado_var)
+
+        # Botão Salvar
+        tk.Button(modal, text="Salvar", command=lambda: self.salvar_edicao(pedido_index, modal), width=15).grid(row=13, column=0, columnspan=2, pady=10)
+
+    def add_pedido_entry_modal(self):
+        row = len(self.pedido_entries)
+        pedido_label = tk.Label(self.pedidos_inner_frame, text=f"Pedido {row + 1}")
+        pedido_label.grid(row=row, column=0, padx=10, pady=5, sticky=tk.W)
+        pedido_entry = tk.Entry(self.pedidos_inner_frame, width=40)
+        pedido_entry.grid(row=row, column=1, padx=10, pady=5, sticky=tk.W)
+        self.pedido_entries.append((pedido_label, pedido_entry))
+        if len(self.pedido_entries) > 1:
+            self.del_pedido_btn.grid()
+
+    def del_pedido_entry_modal(self):
+        if self.pedido_entries:
+            pedido_label, pedido_entry = self.pedido_entries.pop()
+            pedido_label.destroy()
+            pedido_entry.destroy()
+        if len(self.pedido_entries) <= 1:
+            self.del_pedido_btn.grid_remove()
+
+    def salvar_edicao(self, pedido_index, modal):
+        if messagebox.askyesno("Confirmação", "Você tem certeza que deseja salvar as alterações?"):
+            # Atualizar os valores do pedido
+            pedido = self.pedidos[pedido_index]
+            pedido["Nome do Comprador"] = self.nome_entry.get()
+            pedido["Telefone"] = self.telefone_entry.get()
+            pedido["Pedidos"] = [pedido_entry.get() for _, pedido_entry in self.pedido_entries]
+            pedido["Cartão"] = self.cartao_var.get()
+            pedido["Pedido realizado por"] = self.contato_var.get()
+            pedido["Nome do Destinatário"] = self.destinatario_entry.get()
+            pedido["Telefone do Destinatário"] = self.telefone_destinatario_entry.get()
+            pedido["Endereço de Entrega"] = self.endereco_entry.get()
+            pedido["Referência"] = self.referencia_entry.get()
+            pedido["Data de Entrega"] = self.data_entrega_entry.get_date().strftime("%d/%m/%Y")
+            pedido["Hora de Entrega"] = f"{self.hora_var.get().zfill(2)}:{self.minuto_var.get().zfill(2)}"
+            pedido["Pagamento Realizado"] = bool(self.pagamento_realizado_var.get())
+            pedido["Valor do Pedido"] = self.valor_pedido_entry.get()
+
+            # Atualizar o pedido correspondente na lista self.pedidos
+            self.pedidos[pedido_index] = pedido
+
+            # Salvar os pedidos atualizados no arquivo JSON
+            self.salvar_pedidos()
+
+            self.atualizar_lista_pedidos()
+            modal.destroy()
 
     def sort_column(self, col, reverse):
         # Obtém os dados da Treeview
@@ -445,7 +633,6 @@ class PedidoApp:
         tk.Radiobutton(pedidos_frame, text="WhatsApp", variable=self.contato_var, value="WhatsApp").pack(side=tk.LEFT, padx=5)
         tk.Radiobutton(pedidos_frame, text="Loja", variable=self.contato_var, value="Loja").pack(side=tk.LEFT, padx=5)
 
-
         # Pagamento Frame
         self.pagamento_frame = tk.LabelFrame(self.scrollable_frame_content, text="Pagamento", padx=10, pady=10)
         self.pagamento_frame.grid(row=5, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
@@ -467,7 +654,6 @@ class PedidoApp:
 
         # Inicialmente, desabilite a entrada de valor do pedido
         self.toggle_pagamento_entry()
-
 
         # Destinatário Frame
         self.destinatario_frame = tk.LabelFrame(self.scrollable_frame_content, text="Destinatário", padx=10, pady=10)
@@ -541,9 +727,23 @@ class PedidoApp:
             return True
         return False
 
-    def formatar_valor(self, event):
+    def toggle_pagamento_entry(self, valor_pedido_entry=None, pagamento_realizado_var=None):
+        if valor_pedido_entry is None:
+            valor_pedido_entry = self.valor_pedido_entry
+        if pagamento_realizado_var is None:
+            pagamento_realizado_var = self.pagamento_realizado_var
+
+        if pagamento_realizado_var.get() == 1:
+            valor_pedido_entry.config(state='disabled')
+        else:
+            valor_pedido_entry.config(state='normal')
+
+    def formatar_valor(self, event, valor_pedido_entry=None):
+        if valor_pedido_entry is None:
+            valor_pedido_entry = self.valor_pedido_entry
+
         # Obtém o valor atual digitado
-        valor = self.valor_pedido_entry.get()
+        valor = valor_pedido_entry.get()
 
         # Remove qualquer caractere não numérico (exceto vírgulas e pontos)
         valor = ''.join(filter(str.isdigit, valor))
@@ -557,16 +757,8 @@ class PedidoApp:
             valor = f'0.{valor.zfill(2)}'
 
         # Atualiza o campo com o valor formatado
-        self.valor_pedido_entry.delete(0, tk.END)
-        self.valor_pedido_entry.insert(0, valor)
-
-    def toggle_pagamento_entry(self):
-        if self.pagamento_realizado_var.get():
-            self.valor_pedido_label.grid_remove()
-            self.valor_pedido_entry.grid_remove()
-        else:
-            self.valor_pedido_label.grid()
-            self.valor_pedido_entry.grid()
+        valor_pedido_entry.delete(0, tk.END)
+        valor_pedido_entry.insert(0, valor)
 
     def capturar_valor_pedido(self):
         if self.pagamento_realizado_var.get() == 0:
@@ -680,22 +872,37 @@ class PedidoApp:
         
         for item in self.tree.get_children():
             self.tree.delete(item)
+
         for index, pedido in enumerate(self.pedidos):
             tag = 'evenrow' if index % 2 == 0 else 'oddrow'
-            self.tree.insert("", "end", values=(
-                pedido["Nome do Comprador"], 
-                pedido["Data do Pedido"], 
-                pedido["Telefone"], 
-                pedido["Cartão"], 
-                pedido["Pedido realizado por"], 
-                pedido["Nome do Destinatário"], 
-                pedido["Telefone do Destinatário"], 
-                pedido["Endereço de Entrega"], 
-                pedido["Referência"], 
-                pedido["Data de Entrega"], 
-                pedido["Hora de Entrega"]
-            ), tags=(tag,)
-            )
+
+            try:
+                # Convert the list of pedidos to a string
+                pedidos_str = ", ".join(pedido["Pedidos"])
+                
+                values = (
+                    pedido["Nome do Comprador"], 
+                    pedidos_str, 
+                    pedido["Data do Pedido"], 
+                    pedido["Telefone"], 
+                    pedido["Cartão"], 
+                    pedido["Pedido realizado por"], 
+                    pedido["Nome do Destinatário"], 
+                    pedido["Telefone do Destinatário"], 
+                    pedido["Endereço de Entrega"], 
+                    pedido["Referência"], 
+                    pedido["Data de Entrega"], 
+                    pedido["Hora de Entrega"]
+                )
+            except KeyError as e:
+                print(f"Missing key in pedido: {e}")
+                continue
+            except Exception as e:
+                print(f"Error processing pedido: {e}")
+                continue
+
+            self.tree.insert("", "end", values=values, tags=(tag,))
+        
         self.tree.tag_configure('oddrow', background='GhostWhite')
         self.tree.tag_configure('evenrow', background='white')
 
@@ -733,7 +940,8 @@ class PedidoApp:
         
         for item in selecionados:
             valores = self.tree.item(item, "values")
-            pedido = next((p for p in self.pedidos if p["Nome do Comprador"] == valores[0] and p["Data do Pedido"] == valores[1]), None)
+            # Adjust the comparison logic to handle the Pedidos field correctly
+            pedido = next((p for p in self.pedidos if p["Nome do Comprador"] == valores[0] and p["Data do Pedido"] == valores[2]), None)
             if pedido:
                 imprimir_pedido(pedido)
         messagebox.showinfo("Sucesso", "Pedidos impressos com sucesso!")
