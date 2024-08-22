@@ -9,14 +9,33 @@ from tkinter import filedialog, Tk, messagebox, LabelFrame, StringVar, Radiobutt
 import usb.core
 import usb.util
 import locale
+import customtkinter as ctk
+import sv_ttk
+
+import cProfile
+import pstats
+import io
 
 class PedidoApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Gerenciador de Pedidos")
         self.root.geometry("780x680")
-
+        
+        # Aplicar o tema Sun Valley Light
+        sv_ttk.set_theme("light")
+        
         self.root.iconbitmap("icons/icogerenciamento2.ico")
+
+        # Definir o tamanho mínimo da janela
+        self.root.minsize(780, 680)
+
+        # Obter a resolução do monitor
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+
+        # Definir o tamanho máximo da janela
+        self.root.maxsize(screen_width, screen_height)
 
         self.pedidos = []
         self.logo_path = ""
@@ -49,7 +68,7 @@ class PedidoApp:
             widget.destroy()
 
         # Frame para a rolagem
-        self.scrollable_config_frame = tk.Frame(self.configuracao_tab)
+        self.scrollable_config_frame = ttk.Frame(self.configuracao_tab)
         self.scrollable_config_frame.grid(row=0, column=0, sticky="nsew")
         self.configuracao_tab.grid_rowconfigure(0, weight=1)
         self.configuracao_tab.grid_columnconfigure(0, weight=1)
@@ -59,12 +78,12 @@ class PedidoApp:
         self.config_canvas.grid(row=0, column=0, sticky="nsew")
 
         # Scrollbar para a rolagem
-        self.config_scrollbar = tk.Scrollbar(self.scrollable_config_frame, orient="vertical", command=self.config_canvas.yview)
+        self.config_scrollbar = ttk.Scrollbar(self.scrollable_config_frame, orient="vertical", command=self.config_canvas.yview)
         self.config_scrollbar.grid(row=0, column=1, sticky="ns")
         self.config_canvas.configure(yscrollcommand=self.config_scrollbar.set)
 
         # Frame que será colocado dentro do Canvas
-        self.scrollable_config_content = tk.Frame(self.config_canvas)
+        self.scrollable_config_content = ttk.Frame(self.config_canvas)
         self.config_canvas.create_window((0, 0), window=self.scrollable_config_content, anchor="nw")
 
         # Atualiza o scrollregion do canvas quando o conteúdo é modificado
@@ -74,63 +93,63 @@ class PedidoApp:
         self.config_canvas.bind("<Configure>", lambda e: self.config_canvas.config(width=self.scrollable_config_frame.winfo_width()))
 
         # Frame para configuração do logo
-        logo_frame = tk.LabelFrame(self.scrollable_config_content, text="Configuração do Logo", padx=10, pady=10)
+        logo_frame = ttk.LabelFrame(self.scrollable_config_content, text="Configuração do Logo", padding=(10, 10))
         logo_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
         logo_frame.columnconfigure(1, weight=1)
 
-        tk.Label(logo_frame, text="Caminho do Logo").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
-        self.logo_path_entry = tk.Entry(logo_frame, width=60, state='readonly')
+        ttk.Label(logo_frame, text="Caminho do Logo").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        self.logo_path_entry = ttk.Entry(logo_frame, width=60, state='readonly')
         self.logo_path_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.EW)
 
-        self.selecionar_logo_btn = tk.Button(logo_frame, text="Selecionar Logo", command=self.selecionar_logo)
+        self.selecionar_logo_btn = ttk.Button(logo_frame, text="Selecionar Logo", command=self.selecionar_logo)
         self.selecionar_logo_btn.grid(row=1, column=0, pady=10, padx=10, sticky=tk.W)
 
-        self.remover_logo_btn = tk.Button(logo_frame, text="Remover Logo", command=self.remover_logo)
+        self.remover_logo_btn = ttk.Button(logo_frame, text="Remover Logo", command=self.remover_logo)
         self.remover_logo_btn.grid(row=1, column=1, pady=10, padx=10, sticky=tk.E)
 
         # Frame para configuração do cabeçalho e nome do estabelecimento
-        cabecalho_frame = tk.LabelFrame(self.scrollable_config_content, text="Configuração do Pedido", padx=10, pady=10)
+        cabecalho_frame = ttk.LabelFrame(self.scrollable_config_content, text="Configuração do Pedido", padding=(10, 10))
         cabecalho_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
         cabecalho_frame.columnconfigure(1, weight=1)
 
-        tk.Label(cabecalho_frame, text="Cabeçalho do Pedido").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
-        self.cabecalho_pedido_entry = tk.Entry(cabecalho_frame, width=88)
+        ttk.Label(cabecalho_frame, text="Cabeçalho do Pedido").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        self.cabecalho_pedido_entry = ttk.Entry(cabecalho_frame, width=88)
         self.cabecalho_pedido_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.EW)
 
-        tk.Label(cabecalho_frame, text="Nome do Estabelecimento").grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
-        self.nome_estabelecimento_entry = tk.Entry(cabecalho_frame, width=60)
+        ttk.Label(cabecalho_frame, text="Nome do Estabelecimento").grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
+        self.nome_estabelecimento_entry = ttk.Entry(cabecalho_frame, width=60)
         self.nome_estabelecimento_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.EW)
 
         # Frame para configuração da impressora
-        impressora_frame = tk.LabelFrame(self.scrollable_config_content, text="Configuração da Impressora", padx=10, pady=10)
+        impressora_frame = ttk.LabelFrame(self.scrollable_config_content, text="Configuração da Impressora", padding=(10, 10))
         impressora_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
         impressora_frame.columnconfigure(1, weight=1)
 
-        tk.Label(impressora_frame, text="Selecionar Impressora").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        ttk.Label(impressora_frame, text="Selecionar Impressora").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
         self.printer_var = tk.StringVar()
         self.printer_combobox = ttk.Combobox(impressora_frame, textvariable=self.printer_var)
         self.printer_combobox.grid(row=0, column=1, padx=10, pady=5, sticky=tk.EW)
         self.printer_combobox.bind("<<ComboboxSelected>>", self.atualizar_impressora_selecionada)
 
         # Botão para atualizar a lista de impressoras
-        self.atualizar_lista_btn = tk.Button(impressora_frame, text="Atualizar Lista", command=self.atualizar_lista_impressoras)
+        self.atualizar_lista_btn = ttk.Button(impressora_frame, text="Atualizar Lista", command=self.atualizar_lista_impressoras)
         self.atualizar_lista_btn.grid(row=0, column=2, padx=10, pady=5)
 
-        tk.Label(impressora_frame, text="Vendor ID").grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
-        self.vendor_id_entry = tk.Entry(impressora_frame, width=30)
+        ttk.Label(impressora_frame, text="Vendor ID").grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
+        self.vendor_id_entry = ttk.Entry(impressora_frame, width=30)
         self.vendor_id_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.W)
 
-        tk.Label(impressora_frame, text="Product ID").grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
-        self.product_id_entry = tk.Entry(impressora_frame, width=30)
+        ttk.Label(impressora_frame, text="Product ID").grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
+        self.product_id_entry = ttk.Entry(impressora_frame, width=30)
         self.product_id_entry.grid(row=2, column=1, padx=10, pady=5, sticky=tk.W)
 
         # Checkbutton para entrada manual dos IDs
         self.entrada_manual_var = tk.BooleanVar()
-        self.entrada_manual_check = tk.Checkbutton(impressora_frame, text="Inserir manualmente", variable=self.entrada_manual_var, command=self.atualizar_estado_ids)
+        self.entrada_manual_check = ttk.Checkbutton(impressora_frame, text="Inserir manualmente", variable=self.entrada_manual_var, command=self.atualizar_estado_ids)
         self.entrada_manual_check.grid(row=3, column=0, columnspan=2, pady=10, padx=10, sticky=tk.W)
 
         # Label para mostrar a impressora selecionada
-        self.impressora_selecionada_label = tk.Label(impressora_frame, text="Impressora Selecionada: Nenhuma")
+        self.impressora_selecionada_label = ttk.Label(impressora_frame, text="Impressora Selecionada: Nenhuma")
         self.impressora_selecionada_label.grid(row=4, column=0, columnspan=3, pady=10, padx=10, sticky=tk.W)
 
         # Garanta que o Frame de rolagem se ajuste ao Canvas
@@ -138,7 +157,7 @@ class PedidoApp:
         self.scrollable_config_frame.grid_columnconfigure(0, weight=1)
 
         # Botão para salvar as configurações
-        self.salvar_configuracao_btn = tk.Button(self.configuracao_tab, text="Salvar Configuração", command=self.salvar_configuracao)
+        self.salvar_configuracao_btn = ttk.Button(self.configuracao_tab, text="Salvar Configuração", command=self.salvar_configuracao)
         self.salvar_configuracao_btn.grid(row=3, column=0, columnspan=2, pady=10)
 
         self.carregar_configuracao()
@@ -287,12 +306,12 @@ class PedidoApp:
         self.lista_pedidos_tab.grid_columnconfigure(0, weight=1)
 
         # Frame para agrupar o rótulo e a barra de busca
-        search_frame = tk.Frame(self.lista_pedidos_tab)
+        search_frame = ttk.Frame(self.lista_pedidos_tab)
         search_frame.grid(row=0, column=0, columnspan=2, pady=5, padx=10, sticky=tk.EW)
 
         # Barra de Busca
-        tk.Label(search_frame, text="Buscar:").grid(row=0, column=0, pady=5, padx=(0, 5), sticky=tk.W)
-        self.busca_entry = tk.Entry(search_frame, width=50)
+        ttk.Label(search_frame, text="Buscar:").grid(row=0, column=0, pady=5, padx=(0, 5), sticky=tk.W)
+        self.busca_entry = ttk.Entry(search_frame, width=50)
         self.busca_entry.grid(row=0, column=1, pady=5, padx=(5, 0), sticky=tk.EW)
         self.busca_entry.bind("<KeyRelease>", self.filtrar_pedidos)
 
@@ -310,24 +329,38 @@ class PedidoApp:
         self.tree.grid(row=1, column=0, columnspan=2, sticky="nsew")
 
         # Scrollbars
-        self.scrollbar_y = tk.Scrollbar(self.lista_pedidos_tab, orient=tk.VERTICAL, command=self.tree.yview)
+        self.scrollbar_y = ttk.Scrollbar(self.lista_pedidos_tab, orient=tk.VERTICAL, command=self.tree.yview)
         self.scrollbar_y.grid(row=1, column=2, sticky="ns")
         self.tree.config(yscrollcommand=self.scrollbar_y.set)
         
-        self.scrollbar_x = tk.Scrollbar(self.lista_pedidos_tab, orient=tk.HORIZONTAL, command=self.tree.xview)
+        self.scrollbar_x = ttk.Scrollbar(self.lista_pedidos_tab, orient=tk.HORIZONTAL, command=self.tree.xview)
         self.scrollbar_x.grid(row=2, column=0, columnspan=2, sticky="ew")
         self.tree.config(xscrollcommand=self.scrollbar_x.set)
 
         # Botões
-        self.imprimir_btn = tk.Button(self.lista_pedidos_tab, text="Imprimir Selecionados", command=self.imprimir_pedidos_selecionados)
+        self.imprimir_btn = ttk.Button(self.lista_pedidos_tab, text="Imprimir Selecionados", command=self.imprimir_pedidos_selecionados)
         self.imprimir_btn.grid(row=3, column=0, pady=10, padx=10, sticky=tk.W)
         
-        self.apagar_btn = tk.Button(self.lista_pedidos_tab, text="Apagar Selecionados", command=self.apagar_pedidos_selecionados)
+        self.apagar_btn = ttk.Button(self.lista_pedidos_tab, text="Apagar Selecionados", command=self.apagar_pedidos_selecionados)
         self.apagar_btn.grid(row=3, column=1, pady=10, padx=10, sticky=tk.E)
 
-        self.editar_btn = tk.Button(self.lista_pedidos_tab, text="Editar Selecionado", command=self.editar_pedido_selecionado)
-        self.editar_btn.grid(row=0, column=1, pady=10, padx=10, sticky=tk.W)
+        # Frame para busca e edição
+        search_and_edit_frame = ttk.Frame(self.lista_pedidos_tab)
+        search_and_edit_frame.grid(row=0, column=0, sticky=tk.NSEW)
 
+        # Barra de Busca
+        ttk.Label(search_and_edit_frame, text="Buscar:").grid(row=0, column=0, pady=5, padx=(0, 5), sticky=tk.W)
+        self.busca_entry = ttk.Entry(search_and_edit_frame, width=50)
+        self.busca_entry.grid(row=0, column=1, pady=5, padx=(5, 0), sticky=tk.EW)
+        self.busca_entry.bind("<KeyRelease>", self.filtrar_pedidos)
+
+        # Botão Editar Selecionado
+        self.editar_btn = ttk.Button(search_and_edit_frame, text="Editar Selecionado", command=self.editar_pedido_selecionado)
+        self.editar_btn.grid(row=0, column=2, pady=10, padx=(10, 0), sticky=tk.W)
+
+        # Configurar a coluna para expandir a barra de busca
+        search_and_edit_frame.grid_columnconfigure(1, weight=1)
+        
         # Atualizar a lista de pedidos
         self.atualizar_lista_pedidos()
 
@@ -357,88 +390,87 @@ class PedidoApp:
         modal.grab_set()
 
         # Campos de edição
-        tk.Label(modal, text="Nome do Comprador").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
-        self.nome_entry = tk.Entry(modal, width=40)
+        ttk.Label(modal, text="Nome do Comprador").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        self.nome_entry = ttk.Entry(modal, width=40)
         self.nome_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.W)
         self.nome_entry.insert(0, pedido["Nome do Comprador"])
 
-        tk.Label(modal, text="Telefone").grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
-        self.telefone_entry = tk.Entry(modal, width=40)
+        ttk.Label(modal, text="Telefone").grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
+        self.telefone_entry = ttk.Entry(modal, width=40)
         self.telefone_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.W)
         self.telefone_entry.insert(0, pedido["Telefone"])
 
         # Inicializar os campos de pedidos
         self.pedido_entries = []
-        self.pedidos_inner_frame = tk.Frame(modal)
+        self.pedidos_inner_frame = ttk.Frame(modal)
         self.pedidos_inner_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=5, sticky=tk.W)
 
         for i, pedido_item in enumerate(pedido["Pedidos"]):
-            pedido_label = tk.Label(self.pedidos_inner_frame, text=f"Pedido {i + 1}")
+            pedido_label = ttk.Label(self.pedidos_inner_frame, text=f"Pedido {i + 1}")
             pedido_label.grid(row=i, column=0, padx=10, pady=5, sticky=tk.W)
-            pedido_entry = tk.Entry(self.pedidos_inner_frame, width=40)
+            pedido_entry = ttk.Entry(self.pedidos_inner_frame, width=40)
             pedido_entry.grid(row=i, column=1, padx=10, pady=5, sticky=tk.W)
             pedido_entry.insert(0, pedido_item)
             self.pedido_entries.append((pedido_label, pedido_entry))
 
         # Botões para adicionar e remover pedidos
-        self.botoes_frame = tk.Frame(modal)
+        self.botoes_frame = ttk.Frame(modal)
         self.botoes_frame.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky=tk.W)
 
-        self.add_pedido_btn = tk.Button(self.botoes_frame, text="Adicionar Outro Pedido", command=self.add_pedido_entry_modal)
+        self.add_pedido_btn = ttk.Button(self.botoes_frame, text="Adicionar Outro Pedido", command=self.add_pedido_entry_modal)
         self.add_pedido_btn.grid(row=0, column=0, pady=10, padx=5, sticky=tk.W)
 
-        self.del_pedido_btn = tk.Button(self.botoes_frame, text="Excluir Último Pedido", command=self.del_pedido_entry_modal)
+        self.del_pedido_btn = ttk.Button(self.botoes_frame, text="Excluir Último Pedido", command=self.del_pedido_entry_modal)
         self.del_pedido_btn.grid(row=0, column=1, pady=10, padx=5, sticky=tk.W)
         if len(self.pedido_entries) <= 1:
             self.del_pedido_btn.grid_remove()
 
-
         # Cartão
-        tk.Label(modal, text="Cartão").grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
-        cartao_frame = tk.Frame(modal)
+        ttk.Label(modal, text="Cartão").grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
+        cartao_frame = ttk.Frame(modal)
         cartao_frame.grid(row=4, column=1, padx=10, pady=5, sticky=tk.W)
         self.cartao_var = tk.StringVar(value=pedido["Cartão"])
-        tk.Radiobutton(cartao_frame, text="Sim", variable=self.cartao_var, value="Sim").pack(side=tk.LEFT, padx=5)
-        tk.Radiobutton(cartao_frame, text="Nao", variable=self.cartao_var, value="Nao").pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(cartao_frame, text="Sim", variable=self.cartao_var, value="Sim").pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(cartao_frame, text="Nao", variable=self.cartao_var, value="Nao").pack(side=tk.LEFT, padx=5)
 
         # Pedido realizado por
-        tk.Label(modal, text="Pedido realizado por").grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
-        contato_frame = tk.Frame(modal)
+        ttk.Label(modal, text="Pedido realizado por").grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
+        contato_frame = ttk.Frame(modal)
         contato_frame.grid(row=5, column=1, padx=10, pady=5, sticky=tk.W)
         self.contato_var = tk.StringVar(value=pedido["Pedido realizado por"])
-        tk.Radiobutton(contato_frame, text="Telefone", variable=self.contato_var, value="Telefone").pack(side=tk.LEFT, padx=5)
-        tk.Radiobutton(contato_frame, text="WhatsApp", variable=self.contato_var, value="WhatsApp").pack(side=tk.LEFT, padx=5)
-        tk.Radiobutton(contato_frame, text="Loja", variable=self.contato_var, value="Loja").pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(contato_frame, text="Telefone", variable=self.contato_var, value="Telefone").pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(contato_frame, text="WhatsApp", variable=self.contato_var, value="WhatsApp").pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(contato_frame, text="Loja", variable=self.contato_var, value="Loja").pack(side=tk.LEFT, padx=5)
 
-        tk.Label(modal, text="Nome do Destinatário").grid(row=6, column=0, padx=10, pady=5, sticky=tk.W)
-        self.destinatario_entry = tk.Entry(modal, width=40)
+        ttk.Label(modal, text="Nome do Destinatário").grid(row=6, column=0, padx=10, pady=5, sticky=tk.W)
+        self.destinatario_entry = ttk.Entry(modal, width=40)
         self.destinatario_entry.grid(row=6, column=1, padx=10, pady=5, sticky=tk.W)
         self.destinatario_entry.insert(0, pedido["Nome do Destinatário"])
 
-        tk.Label(modal, text="Telefone do Destinatário").grid(row=7, column=0, padx=10, pady=5, sticky=tk.W)
-        self.telefone_destinatario_entry = tk.Entry(modal, width=40)
+        ttk.Label(modal, text="Telefone do Destinatário").grid(row=7, column=0, padx=10, pady=5, sticky=tk.W)
+        self.telefone_destinatario_entry = ttk.Entry(modal, width=40)
         self.telefone_destinatario_entry.grid(row=7, column=1, padx=10, pady=5, sticky=tk.W)
         self.telefone_destinatario_entry.insert(0, pedido["Telefone do Destinatário"])
 
-        tk.Label(modal, text="Endereço de Entrega").grid(row=8, column=0, padx=10, pady=5, sticky=tk.W)
-        self.endereco_entry = tk.Entry(modal, width=40)
+        ttk.Label(modal, text="Endereço de Entrega").grid(row=8, column=0, padx=10, pady=5, sticky=tk.W)
+        self.endereco_entry = ttk.Entry(modal, width=40)
         self.endereco_entry.grid(row=8, column=1, padx=10, pady=5, sticky=tk.W)
         self.endereco_entry.insert(0, pedido["Endereço de Entrega"])
 
-        tk.Label(modal, text="Referência").grid(row=9, column=0, padx=10, pady=5, sticky=tk.W)
-        self.referencia_entry = tk.Entry(modal, width=40)
+        ttk.Label(modal, text="Referência").grid(row=9, column=0, padx=10, pady=5, sticky=tk.W)
+        self.referencia_entry = ttk.Entry(modal, width=40)
         self.referencia_entry.grid(row=9, column=1, padx=10, pady=5, sticky=tk.W)
         self.referencia_entry.insert(0, pedido["Referência"])
 
         # Data de Entrega
-        tk.Label(modal, text="Data de Entrega").grid(row=10, column=0, padx=10, pady=5, sticky=tk.W)
+        ttk.Label(modal, text="Data de Entrega").grid(row=10, column=0, padx=10, pady=5, sticky=tk.W)
         self.data_entrega_entry = DateEntry(modal, width=12, date_pattern='dd/MM/yyyy', locale='pt_BR')
         self.data_entrega_entry.grid(row=10, column=1, padx=10, pady=5, sticky=tk.W)
         self.data_entrega_entry.set_date(datetime.strptime(pedido["Data de Entrega"], "%d/%m/%Y"))
 
         # Hora de Entrega
-        tk.Label(modal, text="Hora de Entrega").grid(row=11, column=0, padx=10, pady=5, sticky=tk.W)
-        hora_entrega_frame = tk.Frame(modal)
+        ttk.Label(modal, text="Hora de Entrega").grid(row=11, column=0, padx=10, pady=5, sticky=tk.W)
+        hora_entrega_frame = ttk.Frame(modal)
         hora_entrega_frame.grid(row=11, column=1, padx=10, pady=5, sticky=tk.W)
 
         self.hora_var = tk.StringVar(value=pedido["Hora de Entrega"].split(":")[0])
@@ -447,20 +479,20 @@ class PedidoApp:
         vcmd_hora = (modal.register(self.validate_hour), '%P')
         vcmd_minuto = (modal.register(self.validate_minute), '%P')
 
-        tk.Spinbox(hora_entrega_frame, from_=0, to=23, textvariable=self.hora_var, width=3, format="%02.0f", validate='key', validatecommand=vcmd_hora).grid(row=0, column=0, sticky=tk.W)
-        tk.Label(hora_entrega_frame, text=":").grid(row=0, column=1, sticky=tk.W)
-        tk.Spinbox(hora_entrega_frame, from_=0, to=59, textvariable=self.minuto_var, width=3, format="%02.0f", validate='key', validatecommand=vcmd_minuto).grid(row=0, column=2, sticky=tk.W)
+        ttk.Spinbox(hora_entrega_frame, from_=0, to=23, textvariable=self.hora_var, width=3, format="%02.0f", validate='key', validatecommand=vcmd_hora).grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(hora_entrega_frame, text=":").grid(row=0, column=1, sticky=tk.W)
+        ttk.Spinbox(hora_entrega_frame, from_=0, to=59, textvariable=self.minuto_var, width=3, format="%02.0f", validate='key', validatecommand=vcmd_minuto).grid(row=0, column=2, sticky=tk.W)
 
         # Pagamento Realizado e Valor do Pedido
-        pagamento_frame = tk.Frame(modal)
+        pagamento_frame = ttk.Frame(modal)
         pagamento_frame.grid(row=12, column=0, columnspan=2, padx=10, pady=5, sticky=tk.W)
 
         self.pagamento_realizado_var = tk.IntVar(value=1 if pedido["Pagamento Realizado"] else 0)
-        pagamento_checkbutton = tk.Checkbutton(pagamento_frame, text="Pagamento Realizado", variable=self.pagamento_realizado_var, command=lambda: self.toggle_pagamento_entry(self.valor_pedido_entry, self.pagamento_realizado_var))
+        pagamento_checkbutton = ttk.Checkbutton(pagamento_frame, text="Pagamento Realizado", variable=self.pagamento_realizado_var, command=lambda: self.toggle_pagamento_entry(self.valor_pedido_entry, self.pagamento_realizado_var))
         pagamento_checkbutton.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
 
-        valor_pedido_label = tk.Label(pagamento_frame, text="Valor do Pedido")
-        self.valor_pedido_entry = tk.Entry(pagamento_frame, width=20, validate="key")
+        valor_pedido_label = ttk.Label(pagamento_frame, text="Valor do Pedido")
+        self.valor_pedido_entry = ttk.Entry(pagamento_frame, width=20, validate="key")
         valor_pedido_label.grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
         self.valor_pedido_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.W)
         self.valor_pedido_entry.insert(0, pedido["Valor do Pedido"])
@@ -472,8 +504,8 @@ class PedidoApp:
         self.toggle_pagamento_entry(self.valor_pedido_entry, self.pagamento_realizado_var)
 
         # Botão Salvar
-        tk.Button(modal, text="Salvar", command=lambda: self.salvar_edicao(pedido_index, modal), width=15).grid(row=13, column=0, columnspan=2, pady=10)
-
+        ttk.Button(modal, text="Salvar", command=lambda: self.salvar_edicao(pedido_index, modal), width=15).grid(row=13, column=0, columnspan=2, pady=10)
+    
     def add_pedido_entry_modal(self):
         row = len(self.pedido_entries)
         pedido_label = tk.Label(self.pedidos_inner_frame, text=f"Pedido {row + 1}")
@@ -540,7 +572,7 @@ class PedidoApp:
         self.adicionar_pedido_tab.grid_columnconfigure(0, weight=1)
 
         # Frame para a rolagem
-        self.scrollable_frame = tk.Frame(self.adicionar_pedido_tab)
+        self.scrollable_frame = ttk.Frame(self.adicionar_pedido_tab)
         self.scrollable_frame.grid(row=1, column=0, sticky="nsew")
 
         # Canvas para a rolagem
@@ -548,12 +580,12 @@ class PedidoApp:
         self.canvas.grid(row=0, column=0, sticky="nsew")
 
         # Scrollbar para a rolagem
-        self.scrollbar = tk.Scrollbar(self.scrollable_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollbar = ttk.Scrollbar(self.scrollable_frame, orient="vertical", command=self.canvas.yview)
         self.scrollbar.grid(row=0, column=1, sticky="ns")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
 
         # Frame que será colocado dentro do Canvas
-        self.scrollable_frame_content = tk.Frame(self.canvas)
+        self.scrollable_frame_content = ttk.Frame(self.canvas)
         self.canvas.create_window((0, 0), window=self.scrollable_frame_content, anchor="nw")
 
         # Atualiza o scrollregion do canvas quando o conteúdo é modificado
@@ -565,51 +597,52 @@ class PedidoApp:
 
         # Configurar o Canvas para ajustar o tamanho da janela
         self.canvas.bind("<Configure>", lambda e: self.canvas.config(width=self.scrollable_frame.winfo_width()))
-
-        # Adicione widgets ao self.scrollable_frame_content
-        self.comprador_frame = tk.LabelFrame(self.scrollable_frame_content, text="Comprador", padx=10, pady=10)
-        self.comprador_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        
+        # Frame do Comprador
+        self.comprador_frame = ttk.LabelFrame(self.scrollable_frame_content, text="Comprador", padding=(10, 10), style="Custom.TLabelframe")
+        self.comprador_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
         self.comprador_frame.columnconfigure(1, weight=1)
 
-        tk.Label(self.comprador_frame, text="Nome").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
-        self.nome_entry = tk.Entry(self.comprador_frame, width=50)
+        # Nome do Comprador
+        ttk.Label(self.comprador_frame, text="Nome", style="Custom.TLabel").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        self.nome_entry = ttk.Entry(self.comprador_frame, width=50, style="Custom.TEntry")
         self.nome_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.EW)
+
+        # Telefone
+        ttk.Label(self.comprador_frame, text="Telefone", style="Custom.TLabel").grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
+        self.telefone_entry = ttk.Entry(self.comprador_frame, width=25, style="Custom.TEntry")  # Ajustando a largura do campo de telefone
+        self.telefone_entry.grid(row=3, column=1, padx=10, pady=5, sticky=tk.W)
 
         # Garanta que o frame e os widgets se ajustem ao tamanho da janela
         self.scrollable_frame_content.grid_rowconfigure(0, weight=1)
         self.scrollable_frame_content.grid_columnconfigure(0, weight=1)
-    
-        # Telefone
-        tk.Label(self.comprador_frame, text="Telefone").grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
-        self.telefone_entry = tk.Entry(self.comprador_frame, width=25)  # Ajustando a largura do campo de telefone
-        self.telefone_entry.grid(row=3, column=1, padx=10, pady=5, sticky=tk.W)
 
         # Configurar os pesos das linhas e colunas do `scrollable_frame`
         self.scrollable_frame.grid_rowconfigure(0, weight=1)
         self.scrollable_frame.grid_columnconfigure(0, weight=1)
 
         # Pedidos frame
-        self.pedidos_frame = tk.LabelFrame(self.scrollable_frame_content, text="Pedidos", padx=10, pady=10)
+        self.pedidos_frame = ttk.LabelFrame(self.scrollable_frame_content, text="Pedidos", padding=(10, 10))
         self.pedidos_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
         self.pedidos_frame.columnconfigure(1, weight=1)
 
         # Frame interno para pedidos
-        self.pedidos_inner_frame = tk.Frame(self.pedidos_frame)
+        self.pedidos_inner_frame = ttk.Frame(self.pedidos_frame)
         self.pedidos_inner_frame.grid(row=0, column=0, padx=10, pady=5, sticky=tk.EW, columnspan=2)
 
         # Frame para os botões
-        self.botoes_frame = tk.Frame(self.pedidos_frame)
+        self.botoes_frame = ttk.Frame(self.pedidos_frame)
         self.botoes_frame.grid(row=1, column=0, columnspan=2, pady=10, padx=5, sticky=tk.EW)
 
         # Inicializa a lista de entradas de pedido
         self.pedido_entries = []
 
         # Botão Adicionar Pedido
-        self.add_pedido_btn = tk.Button(self.botoes_frame, text="Adicionar Outro Pedido", command=self.add_pedido_entry)
+        self.add_pedido_btn = ttk.Button(self.botoes_frame, text="Adicionar Outro Pedido", command=self.add_pedido_entry)
         self.add_pedido_btn.grid(row=0, column=0, pady=10, padx=5, sticky=tk.W)
         
         # Botão Excluir Pedido
-        self.del_pedido_btn = tk.Button(self.botoes_frame, text="Excluir Último Pedido", command=self.del_pedido_entry)
+        self.del_pedido_btn = ttk.Button(self.botoes_frame, text="Excluir Último Pedido", command=self.del_pedido_entry)
         self.del_pedido_btn.grid(row=0, column=1, pady=10, padx=5, sticky=tk.W)
         self.del_pedido_btn.grid_remove()  # Esconda o botão inicialmente
 
@@ -617,35 +650,35 @@ class PedidoApp:
         self.add_pedido_entry()
 
         # Cartao
-        tk.Label(self.pedidos_frame, text= "Cartão").grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
-        pedidos_frame = tk.Frame(self.pedidos_frame)
-        pedidos_frame.grid(row=2, column=1, padx=10, pady=5, sticky=tk.EW)
+        ttk.Label(self.pedidos_frame, text="Cartão").grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
+        cartao_frame = ttk.Frame(self.pedidos_frame)
+        cartao_frame.grid(row=2, column=1, padx=10, pady=5, sticky=tk.EW)
         self.cartao_var = tk.StringVar(value="Nao")
-        tk.Radiobutton(pedidos_frame, text="Sim", variable=self.cartao_var, value="Sim").pack(side=tk.LEFT, padx=5)
-        tk.Radiobutton(pedidos_frame, text="Nao", variable=self.cartao_var, value="Nao").pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(cartao_frame, text="Sim", variable=self.cartao_var, value="Sim").pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(cartao_frame, text="Nao", variable=self.cartao_var, value="Nao").pack(side=tk.LEFT, padx=5)
 
         # Contato
-        tk.Label(self.pedidos_frame, text="Pedido realizado por").grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
-        pedidos_frame = tk.Frame(self.pedidos_frame)
-        pedidos_frame.grid(row=3, column=1, padx=10, pady=5, sticky=tk.EW)
+        ttk.Label(self.pedidos_frame, text="Pedido realizado por").grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
+        contato_frame = ttk.Frame(self.pedidos_frame)
+        contato_frame.grid(row=3, column=1, padx=10, pady=5, sticky=tk.EW)
         self.contato_var = tk.StringVar(value="WhatsApp")
-        tk.Radiobutton(pedidos_frame, text="Telefone", variable=self.contato_var, value="Telefone").pack(side=tk.LEFT, padx=5)
-        tk.Radiobutton(pedidos_frame, text="WhatsApp", variable=self.contato_var, value="WhatsApp").pack(side=tk.LEFT, padx=5)
-        tk.Radiobutton(pedidos_frame, text="Loja", variable=self.contato_var, value="Loja").pack(side=tk.LEFT, padx=5)
-
+        ttk.Radiobutton(contato_frame, text="Telefone", variable=self.contato_var, value="Telefone").pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(contato_frame, text="WhatsApp", variable=self.contato_var, value="WhatsApp").pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(contato_frame, text="Loja", variable=self.contato_var, value="Loja").pack(side=tk.LEFT, padx=5)
+                
         # Pagamento Frame
-        self.pagamento_frame = tk.LabelFrame(self.scrollable_frame_content, text="Pagamento", padx=10, pady=10)
+        self.pagamento_frame = ttk.LabelFrame(self.scrollable_frame_content, text="Pagamento", padding=(10, 10))
         self.pagamento_frame.grid(row=5, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
         self.pagamento_frame.columnconfigure(1, weight=1)
 
         # Opção de pagamento
         self.pagamento_realizado_var = tk.IntVar(value=0)
-        self.pagamento_checkbutton = tk.Checkbutton(self.pagamento_frame, text="Pagamento Realizado", variable=self.pagamento_realizado_var, command=self.toggle_pagamento_entry)
+        self.pagamento_checkbutton = ttk.Checkbutton(self.pagamento_frame, text="Pagamento Realizado", variable=self.pagamento_realizado_var, command=self.toggle_pagamento_entry)
         self.pagamento_checkbutton.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
 
         # Campo para inserir o valor do pedido
-        self.valor_pedido_label = tk.Label(self.pagamento_frame, text="Valor do Pedido")
-        self.valor_pedido_entry = tk.Entry(self.pagamento_frame, width=20, validate="key")
+        self.valor_pedido_label = ttk.Label(self.pagamento_frame, text="Valor do Pedido")
+        self.valor_pedido_entry = ttk.Entry(self.pagamento_frame, width=20, validate="key")
         self.valor_pedido_label.grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
         self.valor_pedido_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.W)
 
@@ -654,45 +687,53 @@ class PedidoApp:
 
         # Inicialmente, desabilite a entrada de valor do pedido
         self.toggle_pagamento_entry()
-
+        
         # Destinatário Frame
-        self.destinatario_frame = tk.LabelFrame(self.scrollable_frame_content, text="Destinatário", padx=10, pady=10)
+        self.destinatario_frame = ttk.LabelFrame(self.scrollable_frame_content, text="Destinatário", padding=(10, 10))
         self.destinatario_frame.grid(row=6, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
         self.destinatario_frame.columnconfigure(1, weight=1)
 
         # Nome do Destinatário
-        tk.Label(self.destinatario_frame, text="Nome do Destinatário").grid(row=6, column=0, padx=10, pady=5, sticky=tk.W)
-        self.destinatario_entry = tk.Entry(self.destinatario_frame, width=50)
+        ttk.Label(self.destinatario_frame, text="Nome do Destinatário").grid(row=6, column=0, padx=10, pady=5, sticky=tk.W)
+        self.destinatario_entry = ttk.Entry(self.destinatario_frame, width=50)
         self.destinatario_entry.grid(row=6, column=1, padx=10, pady=5, sticky=tk.EW)
 
         # Telefone do Destinatário
-        tk.Label(self.destinatario_frame, text="Telefone do Destinatário").grid(row=7, column=0, padx=10, pady=5, sticky=tk.W)
-        self.telefone_destinatario_entry = tk.Entry(self.destinatario_frame, width=25)
+        ttk.Label(self.destinatario_frame, text="Telefone do Destinatário").grid(row=7, column=0, padx=10, pady=5, sticky=tk.W)
+        self.telefone_destinatario_entry = ttk.Entry(self.destinatario_frame, width=25)
         self.telefone_destinatario_entry.grid(row=7, column=1, padx=10, pady=5, sticky=tk.W)
 
         # Endereço de Entrega
-        tk.Label(self.destinatario_frame, text="Endereço de Entrega").grid(row=8, column=0, padx=10, pady=5, sticky=tk.W)
-        self.endereco_entry = tk.Entry(self.destinatario_frame, width=50)
+        ttk.Label(self.destinatario_frame, text="Endereço de Entrega").grid(row=8, column=0, padx=10, pady=5, sticky=tk.W)
+        self.endereco_entry = ttk.Entry(self.destinatario_frame, width=50)
         self.endereco_entry.grid(row=8, column=1, padx=10, pady=5, sticky=tk.EW)
 
         # Referência
-        tk.Label(self.destinatario_frame, text="Referência").grid(row=9, column=0, padx=10, pady=5, sticky=tk.W)
-        self.referencia_entry = tk.Entry(self.destinatario_frame, width=50)
+        ttk.Label(self.destinatario_frame, text="Referência").grid(row=9, column=0, padx=10, pady=5, sticky=tk.W)
+        self.referencia_entry = ttk.Entry(self.destinatario_frame, width=50)
         self.referencia_entry.grid(row=9, column=1, padx=10, pady=5, sticky=tk.EW)
 
         # Data de Entrega
-        tk.Label(self.destinatario_frame, text="Data de Entrega").grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
+        ttk.Label(self.destinatario_frame, text="Data de Entrega").grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
         self.data_entrega_entry = DateEntry(
             self.destinatario_frame,
             date_pattern='dd/MM/yyyy',
             width=12,
-            locale='pt_BR' 
+            locale='pt_BR',
+            background='white',  # Fundo do campo de entrada
+            foreground='black',  # Cor do texto
+            borderwidth=2,       # Largura da borda
+            headersbackground='lightgrey',  # Fundo dos cabeçalhos do calendário
+            headersforeground='black',      # Cor do texto dos cabeçalhos
+            selectbackground='blue',        # Fundo da data selecionada
+            selectforeground='white'        # Cor do texto da data selecionada
         )
         self.data_entrega_entry.grid(row=4, column=1, padx=10, pady=5, sticky=tk.W)
 
+
         # Hora de Entrega
-        tk.Label(self.destinatario_frame, text="Hora de Entrega").grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
-        self.hora_entrega_entry = tk.Frame(self.destinatario_frame)
+        ttk.Label(self.destinatario_frame, text="Hora de Entrega").grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
+        self.hora_entrega_entry = ttk.Frame(self.destinatario_frame)
         self.hora_entrega_entry.grid(row=5, column=1, padx=10, pady=5, sticky=tk.W)
 
         self.hora_var = tk.StringVar(value="00")
@@ -701,16 +742,16 @@ class PedidoApp:
         vcmd_hora = (self.destinatario_frame.register(self.validate_hour), '%P')
         vcmd_minuto = (self.destinatario_frame.register(self.validate_minute), '%P')
 
-        tk.Spinbox(self.hora_entrega_entry, from_=0, to=23, textvariable=self.hora_var, width=3, format="%02.0f", validate='key', validatecommand=vcmd_hora).grid(row=0, column=0)
-        tk.Label(self.hora_entrega_entry, text=":").grid(row=0, column=1)
-        tk.Spinbox(self.hora_entrega_entry, from_=0, to=59, textvariable=self.minuto_var, width=3, format="%02.0f", validate='key', validatecommand=vcmd_minuto).grid(row=0, column=2)
+        ttk.Spinbox(self.hora_entrega_entry, from_=0, to=23, textvariable=self.hora_var, width=3, format="%02.0f", validate='key', validatecommand=vcmd_hora).grid(row=0, column=0)
+        ttk.Label(self.hora_entrega_entry, text=":").grid(row=0, column=1)
+        ttk.Spinbox(self.hora_entrega_entry, from_=0, to=59, textvariable=self.minuto_var, width=3, format="%02.0f", validate='key', validatecommand=vcmd_minuto).grid(row=0, column=2)
 
         # Garanta que o Canvas se ajuste ao redimensionar a janela
         self.adicionar_pedido_tab.grid_rowconfigure(1, weight=1)
         self.adicionar_pedido_tab.grid_columnconfigure(0, weight=1)
 
         # Botão Adicionar Pedido
-        self.adicionar_pedido_btn = tk.Button(self.adicionar_pedido_tab, text="Adicionar Pedido", command=self.adicionar_pedido)
+        self.adicionar_pedido_btn = ttk.Button(self.adicionar_pedido_tab, text="Adicionar Pedido", command=self.adicionar_pedido)
         self.adicionar_pedido_btn.grid(row=12, column=0, columnspan=2, pady=10)
 
     def validate_hour(self, value_if_allowed):
@@ -771,9 +812,9 @@ class PedidoApp:
 
     def add_pedido_entry(self):
         row = len(self.pedido_entries)
-        pedido_label = tk.Label(self.pedidos_inner_frame, text=f"Pedido {row + 1}")
+        pedido_label = ttk.Label(self.pedidos_inner_frame, text=f"Pedido {row + 1}")
         pedido_label.grid(row=row, column=0, padx=10, pady=5, sticky=tk.W)
-        pedido_entry = tk.Entry(self.pedidos_inner_frame, width=100)
+        pedido_entry = ttk.Entry(self.pedidos_inner_frame, width=100)
         pedido_entry.grid(row=row, column=1, padx=10, pady=5, sticky=tk.W)
         self.pedido_entries.append((pedido_label, pedido_entry))
 
@@ -963,8 +1004,26 @@ class PedidoApp:
         self.salvar_pedidos()
         messagebox.showinfo("Sucesso", "Pedidos apagados com sucesso!")
 
+
+def run_profiler():
+    pr = cProfile.Profile()
+    pr.enable()
+
+    # Inicialize o aplicativo
+    root = tk.Tk()
+    app = PedidoApp(root)
+    root.mainloop()
+
+    pr.disable()
+    s = io.StringIO()
+    sortby = 'cumulative'
+    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    ps.print_stats()
+    print(s.getvalue())
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = PedidoApp(root)
     app.carregar_configuracao()  # Carregar configurações ao iniciar o app
     root.mainloop()
+    #cProfile.run

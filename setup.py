@@ -29,7 +29,7 @@ if sys.platform == "win32":
 
 setup(
     name="Gerenciador de Pedidos",
-    version="0.6",
+    version="0.7",
     description="Gerenciador de Pedidos",
     options={"build_exe": build_exe_options},
     executables=[Executable(
