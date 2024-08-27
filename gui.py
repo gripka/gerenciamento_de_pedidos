@@ -466,15 +466,14 @@ class PedidoApp:
         self.pedido_entries = []
         self.pedidos_inner_frame = ttk.Frame(modal)
         self.pedidos_inner_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=5, sticky=tk.W)
-
         for i, pedido_item in enumerate(pedido["Pedidos"]):
             pedido_label = ttk.Label(self.pedidos_inner_frame, text=f"Pedido {i + 1}")
             pedido_label.grid(row=i, column=0, padx=10, pady=5, sticky=tk.W)
             pedido_entry = ttk.Entry(self.pedidos_inner_frame, width=40)
             pedido_entry.grid(row=i, column=1, padx=10, pady=5, sticky=tk.W)
             pedido_entry.insert(0, pedido_item)
-            self.pedido_entries.append((pedido_label, pedido_entry))
-
+            self.pedido_entries.append(pedido_entry)
+            
         # Botões para adicionar e remover pedidos
         self.botoes_frame = ttk.Frame(modal)
         self.botoes_frame.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky=tk.W)
@@ -547,17 +546,17 @@ class PedidoApp:
 
         # Pagamento Realizado e Valor do Pedido
         pagamento_frame = ttk.Frame(modal)
-        pagamento_frame.grid(row=12, column=0, columnspan=2, padx=10, pady=5, sticky=tk.W)
-
+        pagamento_frame.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky=tk.W)
         self.pagamento_realizado_var = tk.IntVar(value=1 if pedido["Pagamento Realizado"] else 0)
-        pagamento_checkbutton = ttk.Checkbutton(pagamento_frame, text="Pagamento Realizado", variable=self.pagamento_realizado_var, command=lambda: self.toggle_pagamento_entry(self.valor_pedido_entry, self.pagamento_realizado_var))
+        pagamento_checkbutton = ttk.Checkbutton(pagamento_frame, text="Pagamento Realizado", variable=self.pagamento_realizado_var, command=self.toggle_pagamento_entry)
         pagamento_checkbutton.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
 
         valor_pedido_label = ttk.Label(pagamento_frame, text="Valor do Pedido")
-        self.valor_pedido_entry = ttk.Entry(pagamento_frame, width=20, validate="key")
         valor_pedido_label.grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
+        self.valor_pedido_entry = ttk.Entry(pagamento_frame, width=20, validate="key")
         self.valor_pedido_entry.grid(row=1, column=1, padx=10, pady=5, sticky=tk.W)
         self.valor_pedido_entry.insert(0, pedido["Valor do Pedido"])
+        self.valor_pedido_entry.bind('<KeyRelease>', lambda event: self.formatar_valor(event, self.valor_pedido_entry))
 
         # Vincular o evento de formatação ao campo de valor do pedido
         self.valor_pedido_entry.bind('<KeyRelease>', lambda event: self.formatar_valor(event, self.valor_pedido_entry))
@@ -567,22 +566,41 @@ class PedidoApp:
 
         # Botão Salvar
         ttk.Button(modal, text="Salvar", command=lambda: self.salvar_edicao(pedido_index, modal), width=15).grid(row=13, column=0, columnspan=2, pady=10)
-    
+
     def add_pedido_entry_modal(self):
+
+        # Definir largura padrão para os campos de pedido e valor
+        LARGURA_PEDIDO = 34
+        LARGURA_VALOR = 6
+        style = ttk.Style()
+        style.configure("TEntry", padding=(5, 5, 5, 5), font=("Arial", 12))
+
         row = len(self.pedido_entries)
-        pedido_label = tk.Label(self.pedidos_inner_frame, text=f"Pedido {row + 1}")
+        pedido_label = ttk.Label(self.pedidos_inner_frame, text=f"Pedido {row + 1}")
         pedido_label.grid(row=row, column=0, padx=10, pady=5, sticky=tk.W)
-        pedido_entry = tk.Entry(self.pedidos_inner_frame, width=40)
+        
+        pedido_entry = ttk.Entry(self.pedidos_inner_frame, width=LARGURA_PEDIDO, style="TEntry")
         pedido_entry.grid(row=row, column=1, padx=10, pady=5, sticky=tk.W)
-        self.pedido_entries.append((pedido_label, pedido_entry))
+        
+        valor_label = ttk.Label(self.pedidos_inner_frame, text="Valor")
+        valor_label.grid(row=row, column=2, padx=10, pady=5, sticky=tk.W)
+        
+        valor_entry = ttk.Entry(self.pedidos_inner_frame, width=LARGURA_VALOR, style="TEntry")
+        valor_entry.grid(row=row, column=3, padx=10, pady=5, sticky=tk.W)
+        
+        # Bind para atualizar o valor total
+        valor_entry.bind('<KeyRelease>', lambda event: self.atualizar_valor_total())
+        
+        self.pedido_entries.append((pedido_label, pedido_entry, valor_label, valor_entry))
+        
         if len(self.pedido_entries) > 1:
             self.del_pedido_btn.grid()
 
     def del_pedido_entry_modal(self):
         if self.pedido_entries:
-            pedido_label, pedido_entry = self.pedido_entries.pop()
-            pedido_label.destroy()
-            pedido_entry.destroy()
+            widgets = self.pedido_entries.pop()
+            for widget in widgets:
+                widget.destroy()
         if len(self.pedido_entries) <= 1:
             self.del_pedido_btn.grid_remove()
 
@@ -687,7 +705,6 @@ class PedidoApp:
             # Ajustar o tamanho do LabelFrame e dos campos de entrada ao redimensionar a janela
             self.adicionar_pedido_tab.bind("<Configure>", self._resize_widgets)
 
-            
             # Pedidos frame
             self.pedidos_frame = ttk.LabelFrame(self.scrollable_frame_content, text="Pedidos", padding=(10, 10))
             self.pedidos_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew", columnspan=2)
@@ -708,7 +725,6 @@ class PedidoApp:
             self.add_pedido_btn = ttk.Button(self.botoes_frame, text="Adicionar Outro Pedido", command=self.add_pedido_entry)
             self.add_pedido_btn.grid(row=0, column=0, pady=10, padx=5, sticky=tk.W)
             
-            # Botão Excluir Pedido
             self.del_pedido_btn = ttk.Button(self.botoes_frame, text="Excluir Último Pedido", command=self.del_pedido_entry)
             self.del_pedido_btn.grid(row=0, column=1, pady=10, padx=5, sticky=tk.W)
             self.del_pedido_btn.grid_remove()  # Esconda o botão inicialmente
@@ -819,9 +835,12 @@ class PedidoApp:
             self.widget_cache["adicionar_pedido_tab"] = self.adicionar_pedido_tab
 
     def _resize_widgets(self, event):
-        self.comprador_frame.grid_configure(sticky="nsew")
-        self.nome_entry.grid_configure(sticky="ew")
-        self.telefone_entry.grid_configure(sticky="ew")
+        if hasattr(self, 'nome_entry') and self.nome_entry.winfo_exists():
+            self.nome_entry.grid_configure(sticky="ew")
+        if hasattr(self, 'comprador_frame') and self.comprador_frame.winfo_exists():
+            self.comprador_frame.grid_configure(sticky="nsew")
+        if hasattr(self, 'telefone_entry') and self.telefone_entry.winfo_exists():
+            self.telefone_entry.grid_configure(sticky="ew")
 
     def validate_hour(self, value_if_allowed):
         if value_if_allowed.isdigit() and 0 <= int(value_if_allowed) <= 23:
@@ -843,10 +862,12 @@ class PedidoApp:
         if pagamento_realizado_var is None:
             pagamento_realizado_var = self.pagamento_realizado_var
 
-        if pagamento_realizado_var.get() == 1:
-            valor_pedido_entry.config(state='disabled')
-        else:
-            valor_pedido_entry.config(state='normal')
+        # Verifica se o widget ainda existe antes de tentar configurá-lo
+        if valor_pedido_entry.winfo_exists():
+            if pagamento_realizado_var.get() == 1:
+                valor_pedido_entry.config(state='disabled')
+            else:
+                valor_pedido_entry.config(state='normal')
 
     def formatar_valor(self, event, valor_pedido_entry=None):
         if valor_pedido_entry is None:
@@ -860,15 +881,16 @@ class PedidoApp:
 
         # Adiciona a vírgula para os centavos e ponto para separar milhares
         if len(valor) > 2:
-            valor = f'{int(valor[:-2]):,}.{valor[-2:]}'
-            valor = valor.replace(',', '.')
-
+            valor = f'{int(valor[:-2])}.{valor[-2:]}'
         elif len(valor) > 0:
             valor = f'0.{valor.zfill(2)}'
 
         # Atualiza o campo com o valor formatado
         valor_pedido_entry.delete(0, tk.END)
         valor_pedido_entry.insert(0, valor)
+
+        # Atualiza o valor total após formatar o valor
+        self.atualizar_valor_total()
 
     def capturar_valor_pedido(self):
         if self.pagamento_realizado_var.get() == 0:
@@ -880,24 +902,48 @@ class PedidoApp:
         return self.pagamento_realizado_var.get() == 1
 
     def add_pedido_entry(self):
+        style = ttk.Style()
+        style.configure("TEntry", padding=(5, 5, 5, 5), font=("Arial", 12))
+        LARGURA_PEDIDO = 78
+        LARGURA_VALOR = 10
+
         row = len(self.pedido_entries)
         pedido_label = ttk.Label(self.pedidos_inner_frame, text=f"Pedido {row + 1}")
         pedido_label.grid(row=row, column=0, padx=10, pady=5, sticky=tk.W)
-        pedido_entry = ttk.Entry(self.pedidos_inner_frame, width=100)
+        
+        pedido_entry = ttk.Entry(self.pedidos_inner_frame, width=LARGURA_PEDIDO)
         pedido_entry.grid(row=row, column=1, padx=10, pady=5, sticky=tk.W)
-        self.pedido_entries.append((pedido_label, pedido_entry))
+        
+        valor_label = ttk.Label(self.pedidos_inner_frame, text="Valor")
+        valor_label.grid(row=row, column=2, padx=10, pady=5, sticky=tk.W)
+        
+        # Configurar validatecommand para o campo "valor"
+        vcmd = (self.root.register(self.validate_valor), '%P')
+        valor_entry = ttk.Entry(self.pedidos_inner_frame, width=LARGURA_VALOR, validate="key", validatecommand=vcmd)
+        valor_entry.grid(row=row, column=3, padx=10, pady=5, sticky=tk.W)
+        valor_entry.bind('<KeyRelease>', lambda event: (self.atualizar_valor_total(), self.formatar_valor(event, valor_entry)))
+
+
+        self.pedido_entries.append((pedido_label, pedido_entry, valor_label, valor_entry))
 
         # Atualizar a visibilidade do botão de excluir
         self.update_del_pedido_btn()
+
+    def validate_valor(self, new_value):
+        # Permitir apenas números e ponto decimal
+        if new_value == "" or new_value.isdigit() or (new_value.count('.') == 1 and new_value.replace('.', '').isdigit()):
+            return True
+        else:
+            return False
 
     def del_pedido_entry(self):
-        if self.pedido_entries:
-            label, entry = self.pedido_entries.pop()
-            label.destroy()
-            entry.destroy()
-
-        # Atualizar a visibilidade do botão de excluir
-        self.update_del_pedido_btn()
+        print("del_pedido_entry chamado") 
+        if len(self.pedido_entries) >= 1:
+            widgets = self.pedido_entries.pop()
+            for widget in widgets:
+                widget.destroy()
+            self.update_del_pedido_btn()
+            self.atualizar_valor_total() 
 
     def update_del_pedido_btn(self):
         # Esconder o botão de excluir se houver apenas um pedido
@@ -906,15 +952,55 @@ class PedidoApp:
         else:
             self.del_pedido_btn.grid()
 
+    def atualizar_valor_total(self):
+        total = 0.0
+        for _, _, _, valor_entry in self.pedido_entries:
+            valor = valor_entry.get()
+            if valor:
+                try:
+                    total += float(valor.replace(',', '.'))
+                except ValueError:
+                    pass  # Ignore valores inválidos
+
+        self.valor_pedido_entry.delete(0, tk.END)
+        self.valor_pedido_entry.insert(0, f'{total:.2f}')
+
     def adicionar_pedido(self):
         resposta = messagebox.askyesno("Confirmar", "Deseja realmente adicionar este pedido?")
         if not resposta:
             return
 
         # Obter os valores dos pedidos
-        pedidos = [entry.get() for _, entry in self.pedido_entries]
+        pedidos = []
+        for _, entry, _, _ in self.pedido_entries:
+            if entry.winfo_exists():
+                pedidos.append(entry.get())
+            else:
+                messagebox.showerror("Erro", "Um ou mais campos de pedido não estão disponíveis.")
+                return
+
         hora = self.hora_var.get()
         minuto = self.minuto_var.get()
+
+        # Verifica se o widget Entry existe
+        if not hasattr(self, 'valor_pedido_entry') or not self.valor_pedido_entry.winfo_exists():
+            # Recria o widget Entry
+            self.valor_pedido_entry = tk.Entry(self.lista_pedidos_tab) 
+            self.valor_pedido_entry.grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        # Verifica se o widget nome_entry existe
+        if not hasattr(self, 'nome_entry') or not self.nome_entry.winfo_exists():
+            messagebox.showerror("Erro", "O campo 'Nome do Comprador' não está disponível.")
+            return
+
+        # Verifica se o widget pagamento_realizado_var existe
+        if not hasattr(self, 'pagamento_realizado_var'):
+            messagebox.showerror("Erro", "O campo 'Pagamento Realizado' não está disponível.")
+            return
+
+        # Verifica se o widget valor_pedido_entry existe
+        if not hasattr(self, 'valor_pedido_entry') or not self.valor_pedido_entry.winfo_exists():
+            messagebox.showerror("Erro", "O campo 'Valor do Pedido' não está disponível.")
+            return
 
         # Adicionar dados de pagamento
         pagamento_realizado = bool(self.pagamento_realizado_var.get())
