@@ -3,13 +3,18 @@ from PIL import Image
 from datetime import datetime
 import json
 import textwrap
+from unidecode import unidecode
 
 def converter_para_cp437(texto):
     try:
-        return texto.encode('cp437')
+        # Converter caracteres Unicode para seus equivalentes ASCII
+        texto_ascii = unidecode(texto)
+        # Codificar o texto ASCII para CP437
+        texto_cp437 = texto_ascii.encode('cp437', errors='replace').decode('cp437')
+        return texto_cp437
     except UnicodeEncodeError:
         print("Erro ao converter texto para CP437.")
-        return b''
+        return texto
     
 def carregar_configuracoes():
     try:
@@ -87,34 +92,48 @@ def imprimir_pedido(pedido):
             valor_pagamento = pedido.get('Valor do Pedido', '')
             printer.text(f"Pagamento pendente: R$ {valor_pagamento}\n")
 
-        # Adicionar uma linha de separação antes dos detalhes do destinatário
         printer.set(align='center')
-        printer.text("==========================================\n")
-        printer.text("Detalhes do Destinatario\n")
-        printer.text("==========================================\n")
+        printer.text(converter_para_cp437("==========================================\n"))
+        printer.text(converter_para_cp437("Detalhes do Destinatario\n"))
+        printer.text(converter_para_cp437("==========================================\n"))
         printer.set(align='left')
 
+        def imprimir_endereco(printer, endereco_entrega, total_width=45):
+            prefix = "Endereco de Entrega: "
+            prefix_length = len(prefix)
+
+            # Quebrar o endereço em linhas, ajustando a largura da primeira linha
+            endereco_quebrado = textwrap.wrap(endereco_entrega, width=total_width - prefix_length)
+
+            if endereco_quebrado:
+                # Imprimir a primeira linha com o prefixo
+                printer.text(converter_para_cp437(f"{prefix}{endereco_quebrado[0]}\n"))
+                # Quebrar o restante do endereço com a largura total
+                restante_endereco = endereco_entrega[len(endereco_quebrado[0]):].strip()
+                restante_quebrado = textwrap.wrap(restante_endereco, width=total_width)
+                # Imprimir as linhas restantes
+                for line in restante_quebrado:
+                    printer.text(converter_para_cp437(f"{line}\n"))
         endereco_entrega = pedido.get('Endereço de Entrega', '')
-        endereco_quebrado = textwrap.fill(endereco_entrega, width=45)
-        printer.text(f"Nome do Destinatario: {pedido.get('Nome do Destinatário', '')}\n")
-        printer.text(f"Telefone do Destinatario: {pedido.get('Telefone do Destinatário', '')}\n")
-        printer.text(f"Endereco de Entrega: \n{endereco_quebrado}\n")
-        printer.text(f"Referencia: {pedido.get('Referência', '')}\n")
-        printer.text(f"Data de Entrega: {pedido.get('Data de Entrega', '')}\n")
-        printer.text(f"Hora de Entrega: {pedido.get('Hora de Entrega', '')}\n")
+
+        printer.text(converter_para_cp437(f"Nome do Destinatario: {pedido.get('Nome do Destinatário', '')}\n"))
+        printer.text(converter_para_cp437(f"Telefone do Destinatario: {pedido.get('Telefone do Destinatário', '')}\n"))
+        imprimir_endereco(printer, endereco_entrega)
+        printer.text(converter_para_cp437(f"Referencia: {pedido.get('Referência', '')}\n"))
+        printer.text(converter_para_cp437(f"Data de Entrega: {pedido.get('Data de Entrega', '')}\n"))
+        printer.text(converter_para_cp437(f"Hora de Entrega: {pedido.get('Hora de Entrega', '')}\n"))
 
         # Adicionar a data e hora da impressão
         printer.set(align='center')
 
         data_hora_impressao = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        printer.text("\n")
-        printer.text("==========================================\n")
+        printer.text(converter_para_cp437("\n"))
+        printer.text(converter_para_cp437("==========================================\n"))
         printer.set(align='center')
-        printer.text(f"{nome_estabelecimento}\n")
-        printer.text(f"Data da Impressao: {data_hora_impressao}\n")
-        printer.text("==========================================\n")
+        printer.text(converter_para_cp437(f"{config['nome_estabelecimento']}\n"))
+        printer.text(converter_para_cp437(f"Data da Impressao: {data_hora_impressao}\n"))
+        printer.text(converter_para_cp437("==========================================\n"))
 
-        # Cortar o papel
         printer.cut()
 
     except Exception as e:
